@@ -1,4 +1,4 @@
-use winit::{application::ApplicationHandler, window::WindowId};
+use winit::application::ApplicationHandler;
 
 use crate::logic::{Command, game_window::{GameWindow, InputHandler}};
 

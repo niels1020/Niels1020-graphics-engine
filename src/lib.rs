@@ -3,6 +3,8 @@ use winit::event_loop::EventLoop;
 pub mod logic;
 pub mod render;
 
+pub mod common;
+
 pub use winit;
 
 use crate::logic::{app::Game, game_window::InputHandler};

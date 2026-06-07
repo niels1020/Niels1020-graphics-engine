@@ -1,18 +1,24 @@
 use std::sync::Arc;
 
-use wgpu::{ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits, Queue, TextureUsages, wgt::{DeviceDescriptor, SurfaceConfiguration}};
-use winit::{event_loop::ActiveEventLoop, window::{Window, WindowId}};
+use wgpu::{
+    CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits, Queue, TextureUsages, TextureViewDescriptor, wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration}
+};
+use winit::{
+    event_loop::ActiveEventLoop,
+    window::{Window, WindowId},
+};
 
-use crate::{logic::game_window::MAX_FRAME_LATENCY, render::renderer::Renderer};
+use crate::{
+    common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY}, logic::game_window::GameInfo, render::{renderer::Renderer, texture::Texture}
+};
 
 pub struct RenderInfo {
-    pub renderer: Renderer,
-    pub id: WindowId,
-    pub queue: Queue,
-    pub surface: wgpu::Surface<'static>,
-    pub device: wgpu::Device,
-    pub config: wgpu::SurfaceConfiguration,
-    pub is_surface_configured: bool,
+    renderer: Renderer,
+    queue: Queue,
+    surface: wgpu::Surface<'static>,
+    device: wgpu::Device,
+    config: wgpu::SurfaceConfiguration,
+    is_surface_configured: bool,
     pub window: Arc<Window>,
 }
 
@@ -84,7 +90,6 @@ impl RenderInfo {
         let renderer = Renderer::new(&device, &queue, &config);
 
         Self {
-            id: window.id(),
             window: window,
             renderer,
             queue,
@@ -92,6 +97,70 @@ impl RenderInfo {
             device,
             config,
             is_surface_configured: false,
+        }
+    }
+
+    pub fn render(&mut self, game_info: &mut GameInfo) {
+        if !self.is_surface_configured {
+            println!("surface not configured");
+            return;
+        }
+        if let CurrentSurfaceTexture::Success(output) = self.surface.get_current_texture() {
+            let view = output
+                .texture
+                .create_view(&TextureViewDescriptor::default());
+
+            let mut encoder = self
+                .device
+                .create_command_encoder(&CommandEncoderDescriptor {
+                    label: Some("wgpu_game render encoder"),
+                });
+
+            //render pass
+            {
+                let mut render_pass: wgpu::RenderPass<'_> =
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Render Pass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(CLEAR_COLOR),
+                                store: wgpu::StoreOp::Store,
+                            },
+                            depth_slice: None,
+                        })],
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &self.renderer.depth_texture.view,
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(DEPTH_CLEAR_VALUE),
+                                store: wgpu::StoreOp::Store,
+                            }),
+                            stencil_ops: None,
+                        }),
+                        occlusion_query_set: None,
+                        timestamp_writes: None,
+                        multiview_mask: None,
+                    });
+
+                self.renderer.render(game_info, &mut render_pass);
+            }
+
+            // submit will accept anything that implements IntoIter
+            self.queue.submit(std::iter::once(encoder.finish()));
+            output.present();
+        }
+    }
+
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if width > 0 && height > 0 {
+            self.config.width = width;
+            self.config.height = height;
+            self.surface.configure(&self.device, &self.config);
+            self.is_surface_configured = true;
+            self.renderer.depth_texture =
+                Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
+            self.renderer.window_res = [width, height];
         }
     }
 }

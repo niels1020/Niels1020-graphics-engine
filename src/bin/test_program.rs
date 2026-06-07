@@ -21,6 +21,10 @@ impl InputHandler for Input {
 
         commands
     }
+    
+    fn update(&mut self, delta: f64) -> Commands{
+        vec![]
+    }
 }
 
 impl Input {
