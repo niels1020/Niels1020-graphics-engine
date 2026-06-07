@@ -1,20 +1,23 @@
 use winit::application::ApplicationHandler;
 
-use crate::logic::{Command, game_window::{GameWindow, InputHandler}};
+use crate::{
+    common::Command,
+    logic::game_window::{GameWindow, InputHandler},
+};
 
-pub struct Game<T: InputHandler> {
-    windows: Vec<GameWindow<T>>,
+pub struct Game {
+    windows: Vec<GameWindow>,
 }
 
-impl<T: InputHandler> Game<T> {
-    pub fn new(main_input_handler: T) -> Self {
+impl Game {
+    pub fn new(main_input_handler: Box<dyn InputHandler>) -> Self {
         Self {
             windows: vec![GameWindow::new(main_input_handler)],
         }
     }
 }
 
-impl<T: InputHandler> ApplicationHandler for Game<T> {
+impl ApplicationHandler for Game {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let len = self.windows.len();
         self.windows
@@ -50,6 +53,15 @@ impl<T: InputHandler> ApplicationHandler for Game<T> {
                     }
                 }
                 Command::Exit => event_loop.exit(),
+                Command::NewWindow(input_handler) => {
+                    self.windows.push(GameWindow::new(input_handler));
+                    let len = self.windows.len();
+                    let window = self
+                        .windows
+                        .get_mut(len - 1)
+                        .unwrap()
+                        .render_info_init(event_loop);
+                }
             }
         }
     }

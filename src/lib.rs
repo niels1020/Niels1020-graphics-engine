@@ -9,7 +9,7 @@ pub use winit;
 
 use crate::logic::{app::Game, game_window::InputHandler};
 
-pub fn start_engine<T: InputHandler>(main_input_handler: T) {
+pub fn start_engine(main_input_handler: Box<dyn InputHandler>) {
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = Game::new(main_input_handler);

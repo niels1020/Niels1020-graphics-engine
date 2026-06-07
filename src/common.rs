@@ -1,4 +1,7 @@
 use bytemuck::NoUninit;
+use winit::window::WindowId;
+
+use crate::logic::game_window::InputHandler;
 
 // ============================================================================
 // Constants
@@ -87,4 +90,12 @@ impl Vertex {
             tex_coords: [t_x, t_y],
         }
     }
+}
+
+pub type Commands = Vec<Command>;
+
+pub enum Command {
+    CloseWindow(WindowId),
+    Exit,
+    NewWindow(Box<dyn InputHandler>),
 }

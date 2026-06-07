@@ -3,14 +3,13 @@ use std::time::{Duration, Instant};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::WindowId};
 
 use crate::{
-    logic::Commands,
-    render::{render_info::RenderInfo, render_objects::RenderObject},
+    common::Commands, render::{render_info::RenderInfo, render_objects::RenderObject}
 };
 
-pub struct GameWindow<T: InputHandler> {
+pub struct GameWindow {
     pub game_info: GameInfo,
-    input_handler: T,
-    render_info: Option<RenderInfo>,
+    input_handler: Box<dyn InputHandler>,
+    pub render_info: Option<RenderInfo>,
     timing: Timing,
 }
 
@@ -34,8 +33,8 @@ impl Timing {
     }
 }
 
-impl<T: InputHandler> GameWindow<T> {
-    pub fn new(input_handler: T) -> Self {
+impl GameWindow {
+    pub fn new(input_handler: Box<dyn InputHandler>) -> Self {
         Self {
             input_handler,
             render_info: None,
