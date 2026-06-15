@@ -1,5 +1,13 @@
-pub trait RenderObjectTrait {
-    
-}
+use wgpu::{Device, RenderPass, SurfaceConfiguration};
 
-pub type RenderObject = Box<dyn RenderObjectTrait>;
+use crate::render::texture::Texture;
+
+pub trait RenderObject {
+    fn render(
+        &mut self,
+        device: &Device,
+        config: &SurfaceConfiguration,
+        depth_texture: &Texture,
+        render_pass: &mut RenderPass,
+    );
+}

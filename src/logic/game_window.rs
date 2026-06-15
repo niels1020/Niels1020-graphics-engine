@@ -3,18 +3,19 @@ use std::time::{Duration, Instant};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::WindowId};
 
 use crate::{
-    common::Commands, render::{render_info::RenderInfo, render_objects::RenderObject}
+    common::Commands,
+    render::{render_objects::RenderObject, renderer::Renderer},
 };
 
 pub struct GameWindow {
     pub game_info: GameInfo,
     input_handler: Box<dyn InputHandler>,
-    pub render_info: Option<RenderInfo>,
+    pub render_info: Option<Renderer>,
     timing: Timing,
 }
 
 pub struct SceneTree {
-    root: Vec<RenderObject>,
+    pub root: Vec<Box<dyn RenderObject>>,
 }
 
 struct Timing {
@@ -43,10 +44,11 @@ impl GameWindow {
         }
     }
 
-    pub fn render_info_init(&mut self, event_loop: &ActiveEventLoop) {
-        let info = pollster::block_on(RenderInfo::new(&event_loop));
+    pub fn start(&mut self, event_loop: &ActiveEventLoop) -> Commands{
+        let info = pollster::block_on(Renderer::new(&event_loop));
         self.game_info.window_id = Some(info.window.id());
         self.render_info = Some(info);
+        self.input_handler.start(&mut self.game_info)
     }
 
     pub fn window_event(&mut self, window_id: WindowId, event: WindowEvent) -> Commands {
@@ -61,7 +63,10 @@ impl GameWindow {
                         //logic
                         let delta = now - self.timing.last_update;
                         self.timing.last_update = now;
-                        commands.extend(self.input_handler.update(delta.as_secs_f64()));
+                        commands.extend(
+                            self.input_handler
+                                .update(&mut self.game_info, delta.as_secs_f64()),
+                        );
                         //rendering at selected frame rate
                         if now - self.timing.last_render
                             >= Duration::from_millis(1000 / self.game_info.refresh_rate)
@@ -100,13 +105,15 @@ pub trait InputHandler {
     fn window_event(&mut self, game_info: &mut GameInfo, event: WindowEvent) -> Commands;
     fn other_window_event(
         &mut self,
-        game_info: &mut GameInfo,
+        _game_info: &mut GameInfo,
         _window_id: WindowId,
         _event: WindowEvent,
     ) -> Commands {
         vec![]
     }
-    fn update(&mut self, delta: f64) -> Commands;
+    fn update(&mut self, game_info: &mut GameInfo, delta: f64) -> Commands;
+
+    fn start(&mut self, game_info: &mut GameInfo) -> Commands;
 }
 
 pub struct GameInfo {
