@@ -1,5 +1,9 @@
 use wgpu_game_engine::{
-    common::{Command, Commands}, logic::game_window::{GameInfo, InputHandler}, render::render_2d::camera::Camera2D, start_engine
+    common::{Command, Commands},
+    include_wgsl,
+    logic::game_window::{GameInfo, InputHandler},
+    render::render_2d::camera::Camera2D,
+    start_engine,
 };
 use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
@@ -50,9 +54,9 @@ impl InputHandler for Input {
     fn update(&mut self, _game_info: &mut GameInfo, _delta: f64) -> Commands {
         vec![]
     }
-    
+
     fn start(&mut self, game_info: &mut GameInfo) -> Commands {
-        game_info.tree.root = vec![Camera2D::new("I DONT KNOW".to_string(), "Test 2D".to_string())];
+        game_info.tree.root = vec![Camera2D::new(include_wgsl!("../../assets/2d.wgsl"), "Test 2D".to_string())];
         vec![]
     }
 }

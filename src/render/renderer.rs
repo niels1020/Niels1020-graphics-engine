@@ -50,7 +50,7 @@ impl Renderer {
 
         let (device, queue) = adapter
             .request_device(&DeviceDescriptor {
-                label: Some("wgpu_game"),
+                label: Some("wgpu_game_engine"),
                 required_features: Features::empty(),
                 required_limits: Limits::default(),
                 experimental_features: ExperimentalFeatures::disabled(),
@@ -87,6 +87,8 @@ impl Renderer {
                 view_formats: vec![],
             };
 
+        surface.configure(&device, &config);
+
         Self {
             depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
             window: window,
@@ -94,8 +96,8 @@ impl Renderer {
             surface,
             device,
             config,
-            is_surface_configured: false,
-            window_res: [0, 0],
+            is_surface_configured: true,
+            window_res: [size.width, size.height],
         }
     }
 
@@ -112,7 +114,7 @@ impl Renderer {
             let mut encoder = self
                 .device
                 .create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("wgpu_game render encoder"),
+                    label: Some("wgpu_game_engine render encoder"),
                 });
 
             //render pass

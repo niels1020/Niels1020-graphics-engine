@@ -48,6 +48,7 @@ impl GameWindow {
         let info = pollster::block_on(Renderer::new(&event_loop));
         self.game_info.window_id = Some(info.window.id());
         self.render_info = Some(info);
+        self.render_info.as_ref().unwrap().window.request_redraw();
         self.input_handler.start(&mut self.game_info)
     }
 
