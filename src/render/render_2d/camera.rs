@@ -126,7 +126,7 @@ fn create_pipeline(
 
     let layout_desc = PipelineLayoutDescriptor {
         label: Some(&format!("({}) layout", name)),
-        bind_group_layouts: &[], //TODO: add layouts for cam pos and atlas_texture
+        bind_group_layouts: &[], //TODO: add layouts for cam pos and atlas_texture using an atlas texuture provider
         immediate_size: 0,
     };
 
