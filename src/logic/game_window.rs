@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::WindowId};
 
 use crate::{
-    common::Commands,
+    logic::commands::Commands,
     render::{render_objects::RenderObject, renderer::Renderer},
 };
 
@@ -44,16 +44,20 @@ impl GameWindow {
         }
     }
 
-    pub fn start(&mut self, event_loop: &ActiveEventLoop) -> Commands{
+    pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
         let info = pollster::block_on(Renderer::new(&event_loop));
         self.game_info.window_id = Some(info.window.id());
         self.render_info = Some(info);
         self.render_info.as_ref().unwrap().window.request_redraw();
-        self.input_handler.start(&mut self.game_info)
+        self.input_handler.start(commands, &mut self.game_info)
     }
 
-    pub fn window_event(&mut self, window_id: WindowId, event: WindowEvent) -> Commands {
-        let mut commands = vec![];
+    pub fn window_event(
+        &mut self,
+        commands: &mut Commands,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
         if let Some(render_info) = self.render_info.as_mut() {
             if render_info.window.id() == window_id {
                 match event {
@@ -64,9 +68,10 @@ impl GameWindow {
                         //logic
                         let delta = now - self.timing.last_update;
                         self.timing.last_update = now;
-                        commands.extend(
-                            self.input_handler
-                                .update(&mut self.game_info, delta.as_secs_f64()),
+                        self.input_handler.update(
+                            commands,
+                            &mut self.game_info,
+                            delta.as_secs_f64(),
                         );
                         //rendering at selected frame rate
                         if now - self.timing.last_render
@@ -79,19 +84,19 @@ impl GameWindow {
                         }
                         render_info.window.request_redraw();
                     }
-                    _ => {
-                        commands.extend(self.input_handler.window_event(&mut self.game_info, event))
-                    }
+                    _ => self
+                        .input_handler
+                        .window_event(commands, &mut self.game_info, event),
                 }
             } else {
-                commands.extend(self.input_handler.other_window_event(
+                self.input_handler.other_window_event(
+                    commands,
                     &mut self.game_info,
                     window_id,
                     event,
-                ));
+                );
             }
         }
-        commands
     }
 }
 
@@ -103,18 +108,23 @@ impl SceneTree {
 
 pub trait InputHandler {
     //TODO: don't give raw windowevents to the user
-    fn window_event(&mut self, game_info: &mut GameInfo, event: WindowEvent) -> Commands;
+    fn window_event(
+        &mut self,
+        commands: &mut Commands,
+        game_info: &mut GameInfo,
+        event: WindowEvent,
+    );
     fn other_window_event(
         &mut self,
+        commands: &mut Commands,
         _game_info: &mut GameInfo,
         _window_id: WindowId,
         _event: WindowEvent,
-    ) -> Commands {
-        vec![]
+    ) {
     }
-    fn update(&mut self, game_info: &mut GameInfo, delta: f64) -> Commands;
+    fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, delta: f64);
 
-    fn start(&mut self, game_info: &mut GameInfo) -> Commands;
+    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
 }
 
 pub struct GameInfo {

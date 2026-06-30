@@ -1,7 +1,4 @@
 use bytemuck::NoUninit;
-use winit::window::WindowId;
-
-use crate::logic::game_window::InputHandler;
 
 // ============================================================================
 // Constants
@@ -90,13 +87,4 @@ impl Vertex {
             tex_coords: [t_x, t_y],
         }
     }
-}
-
-pub type Commands = Vec<Command>;
-
-//TODO: make into a struct to call the commands on
-pub enum Command {
-    CloseWindow(WindowId),
-    Exit,
-    NewWindow(Box<dyn InputHandler>),
 }

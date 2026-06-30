@@ -1,7 +1,9 @@
 use wgpu_game_engine::{
-    common::{Command, Commands},
     include_wgsl,
-    logic::game_window::{GameInfo, InputHandler},
+    logic::{
+        commands::Commands,
+        game_window::{GameInfo, InputHandler},
+    },
     render::render_2d::{self, camera::Camera2D},
     start_engine,
 };
@@ -19,14 +21,13 @@ struct Input {}
 impl InputHandler for Input {
     fn window_event(
         &mut self,
+        commands: &mut Commands,
         game_info: &mut GameInfo,
         event: winit::event::WindowEvent,
-    ) -> Commands {
-        let mut commands = vec![];
-
+    ) {
         match event {
             WindowEvent::CloseRequested => {
-                commands.push(Command::CloseWindow(game_info.window_id.unwrap()));
+                commands.close_window(game_info.window_id.unwrap());
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -40,27 +41,22 @@ impl InputHandler for Input {
             } => {
                 if key_state == ElementState::Released {
                     match code {
-                        KeyCode::Enter => commands.push(Command::NewWindow(Box::new(Input::new()))),
+                        KeyCode::Enter => commands.new_window(Box::new(Input::new())),
                         _ => {}
                     }
                 }
             }
             _ => {}
         }
-
-        commands
     }
 
-    fn update(&mut self, _game_info: &mut GameInfo, _delta: f64) -> Commands {
-        vec![]
-    }
+    fn update(&mut self, commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
-    fn start(&mut self, game_info: &mut GameInfo) -> Commands {
+    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 =
             Camera2D::new(include_wgsl!("../../assets/2d.wgsl"), "Test 2D".to_string());
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         game_info.tree.root = vec![layer1];
-        vec![]
     }
 }
 
