@@ -50,9 +50,9 @@ impl InputHandler for Input {
         }
     }
 
-    fn update(&mut self, commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
+    fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
-    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
+    fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 =
             Camera2D::new(include_wgsl!("../../assets/2d.wgsl"), "Test 2D".to_string());
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());

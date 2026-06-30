@@ -116,7 +116,7 @@ pub trait InputHandler {
     );
     fn other_window_event(
         &mut self,
-        commands: &mut Commands,
+        _commands: &mut Commands,
         _game_info: &mut GameInfo,
         _window_id: WindowId,
         _event: WindowEvent,
