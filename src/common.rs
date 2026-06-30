@@ -94,6 +94,7 @@ impl Vertex {
 
 pub type Commands = Vec<Command>;
 
+//TODO: make into a struct to call the commands on
 pub enum Command {
     CloseWindow(WindowId),
     Exit,

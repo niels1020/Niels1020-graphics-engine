@@ -167,7 +167,7 @@ impl Renderer {
 
 pub fn render_tree(&mut self, tree: &mut SceneTree, render_pass: &mut RenderPass) {
     for object in tree.root.iter_mut() {
-        object.render(&self.device, &self.config, &self.depth_texture, render_pass);
+        object.render(&self.device, &self.config, &self.queue, &self.depth_texture, render_pass);
     }
 }
 }

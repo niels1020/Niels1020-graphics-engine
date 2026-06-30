@@ -1,6 +1,6 @@
 use wgpu::{
-    BufferDescriptor, Device, FragmentState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-    PolygonMode, PrimitiveState, RenderPass, RenderPipeline, RenderPipelineDescriptor,
+    Buffer, Device, FragmentState, PipelineCompilationOptions, PipelineLayoutDescriptor,
+    PolygonMode, PrimitiveState, Queue, RenderPass, RenderPipeline, RenderPipelineDescriptor,
     ShaderModuleDescriptor, SurfaceConfiguration, VertexState,
     util::{BufferInitDescriptor, DeviceExt},
 };
@@ -16,15 +16,22 @@ pub struct Camera2D<'a> {
     render_pipeline: Option<RenderPipeline>,
     shader: ShaderModuleDescriptor<'a>,
     name: String,
+    vertex_buffer: Option<Buffer>,
+    number_of_children_changed: bool,
 }
 
-pub trait RenderObject2D {}
+pub trait RenderObject2D {
+    fn have_vertices_changed(&mut self) -> bool;
+    fn get_vertices(&mut self) -> Vec<Vertex>;
+    fn get_name(&self) -> String;
+}
 
 impl<'a> RenderObject for Camera2D<'a> {
     fn render(
         &mut self,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
+        queue: &Queue,
         _depth_texture: &Texture,
         render_pass: &mut RenderPass,
     ) {
@@ -37,23 +44,40 @@ impl<'a> RenderObject for Camera2D<'a> {
             ));
         }
 
-        //TODO: render to_rendere instead of some random shit
-        let vertices = vec![
-            Vertex::new(1.0, 0.0, 0.0, 0.0, 0.0),
-            Vertex::new(1.0, 1.0, 0.0, 0.0, 0.0),
-            Vertex::new(0.0, 1.0, 0.0, 0.0, 0.0),
-            Vertex::new(-1.0, 0.0, 0.0, 0.0, 0.0),
-            Vertex::new(-1.0, -1.0, 0.0, 0.0, 0.0),
-            Vertex::new(0.0, -1.0, 0.0, 0.0, 0.0),
-        ];
+        let mut buffer_need_update = self.vertex_buffer.is_none() | self.number_of_children_changed;
+        self.number_of_children_changed = false;
+        for i in self.to_render.iter_mut() {
+            if i.have_vertices_changed() {
+                buffer_need_update = true;
+            }
+        }
 
-        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
+        if buffer_need_update {
+            let mut vertices = vec![];
+            for i in self.to_render.iter_mut() {
+                vertices.extend(i.get_vertices());
+            }
+
+            if vertices.is_empty() {
+                self.vertex_buffer = None;
+            } else if self.vertex_buffer.is_none() {
+                self.vertex_buffer = Some(device.create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
                         contents: bytemuck::cast_slice(&vertices),
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, /*COPY_DST means that you can upload to it later*/});
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, /*COPY_DST means that you can upload to it later*/}));
+            } else {
+                queue.write_buffer(
+                    self.vertex_buffer.as_ref().unwrap(),
+                    0,
+                    bytemuck::cast_slice(&vertices),
+                );
+            }
+        }
 
-        render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
-        render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        render_pass.draw(0..6, 0..1);
+        if self.vertex_buffer.is_some() {
+            render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
+            render_pass.draw(0..6, 0..1);
+        }
     }
 }
 
@@ -64,8 +88,32 @@ impl<'a> Camera2D<'a> {
             render_pipeline: None,
             shader,
             name,
+            vertex_buffer: None,
+            number_of_children_changed: false,
         })
     }
+
+    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D>> {
+        self.to_render.iter().find(|a| a.get_name() == name)
+    }
+
+    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D>> {
+        self.to_render.iter_mut().find(|a| a.get_name() == name)
+    }
+
+    pub fn remove_child(&mut self, name: String) {
+        self.number_of_children_changed = true;
+        let pos = self.to_render.iter().position(|a| a.get_name() == name);
+        if let Some(pos) = pos {
+            self.to_render.remove(pos);
+        }
+    }
+
+    pub fn add_child(&mut self, child: Box<dyn RenderObject2D>) {
+        self.to_render.push(child);
+        self.number_of_children_changed = true;
+    }
+
 }
 
 fn create_pipeline(
@@ -78,7 +126,7 @@ fn create_pipeline(
 
     let layout_desc = PipelineLayoutDescriptor {
         label: Some(&format!("({}) layout", name)),
-        bind_group_layouts: &[], //TODO: add layouts for cam pos and text
+        bind_group_layouts: &[], //TODO: add layouts for cam pos and atlas_texture
         immediate_size: 0,
     };
 
