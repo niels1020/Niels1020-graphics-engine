@@ -1,4 +1,4 @@
-use crate::{common::Vertex, render::render_2d::camera::RenderObject2D};
+use crate::{common::Vertex, render::render_2d::layer::RenderObject2D};
 
 pub struct VerticesTest {
     has_updated: bool,
@@ -22,12 +22,12 @@ impl RenderObject2D for VerticesTest {
 
     fn get_vertices(&mut self) -> Vec<crate::common::Vertex> {
         vec![
-            Vertex::new(1.0, 0.0, 0.0, 0.0, 0.0),
-            Vertex::new(1.0, 1.0, 0.0, 0.0, 0.0),
-            Vertex::new(0.0, 1.0, 0.0, 0.0, 0.0),
-            Vertex::new(-1.0, 0.0, 0.0, 0.0, 0.0),
-            Vertex::new(-1.0, -1.0, 0.0, 0.0, 0.0),
-            Vertex::new(0.0, -1.0, 0.0, 0.0, 0.0),
+            Vertex::new(800.0, 0.0, 0.0, 0.0, 0.0),
+            Vertex::new(800.0, 600.0, 0.0, 0.0, 0.0),
+            Vertex::new(0.0, 600.0, 0.0, 0.0, 0.0),
+            Vertex::new(-800.0, 0.0, 0.0, 0.0, 0.0),
+            Vertex::new(-800.0, -600.0, 0.0, 0.0, 0.0),
+            Vertex::new(0.0, -600.0, 0.0, 0.0, 0.0),
         ]
     }
 

@@ -1,180 +1,95 @@
 use wgpu::{
-    Buffer, Device, FragmentState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-    PolygonMode, PrimitiveState, Queue, RenderPass, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, SurfaceConfiguration, VertexState,
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingType, Buffer, BufferUsages, Device, Queue, ShaderStages,
     util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::{
-    common::Vertex,
-    render::{render_objects::RenderObject, texture::Texture},
-};
-
-#[allow(dead_code)]
-pub struct Camera2D<'a> {
-    to_render: Vec<Box<dyn RenderObject2D>>,
-    render_pipeline: Option<RenderPipeline>,
-    shader: ShaderModuleDescriptor<'a>,
-    name: String,
-    vertex_buffer: Option<Buffer>,
-    number_of_children_changed: bool,
+pub struct Camera2D {
+    pub(crate) layout: Option<BindGroupLayout>,
+    pub(crate) bind: Option<BindGroup>,
+    buffer: Option<Buffer>,
+    pub data: Camera2DData,
 }
 
-pub trait RenderObject2D {
-    fn have_vertices_changed(&mut self) -> bool;
-    fn get_vertices(&mut self) -> Vec<Vertex>;
-    fn get_name(&self) -> String;
+// We need this for Rust to store our data correctly for the shaders
+#[repr(C)]
+// This is so we can store this in a buffer
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Camera2DData {
+    pub position: [f32; 2],
+    pub render_resolution: [f32; 2]
 }
 
-impl<'a> RenderObject for Camera2D<'a> {
-    fn render(
-        &mut self,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-        queue: &Queue,
-        _depth_texture: &Texture,
-        render_pass: &mut RenderPass,
-    ) {
-        if self.render_pipeline.is_none() {
-            self.render_pipeline = Some(create_pipeline(
+impl Camera2D {
+    pub fn new(render_resolution: [f32; 2]) -> Self {
+        Self {
+            layout: None,
+            buffer: None,
+            bind: None,
+            data: Camera2DData {
+                position: [0.0, 0.0],
+                render_resolution
+            },
+        }
+    }
+
+    pub fn update(&mut self, device: &Device, queue: &Queue) {
+        if self.layout.is_none() {
+            self.layout = Some(create_bind_group_layout(device))
+        }
+
+        if self.buffer.is_none() {
+            self.buffer = Some(create_buffer(device, self.data))
+        }
+
+        if self.bind.is_none() {
+            self.bind = Some(create_bind_group(
                 device,
-                self.shader.clone(),
-                config,
-                &self.name,
-            ));
+                self.layout.as_ref().unwrap(),
+                self.buffer.as_ref().unwrap(),
+            ))
         }
 
-        let mut buffer_need_update = self.vertex_buffer.is_none() | self.number_of_children_changed;
-        self.number_of_children_changed = false;
-        for i in self.to_render.iter_mut() {
-            if i.have_vertices_changed() {
-                buffer_need_update = true;
-            }
-        }
-
-        if buffer_need_update {
-            let mut vertices = vec![];
-            for i in self.to_render.iter_mut() {
-                vertices.extend(i.get_vertices());
-            }
-
-            if vertices.is_empty() {
-                self.vertex_buffer = None;
-            } else if self.vertex_buffer.is_none() {
-                self.vertex_buffer = Some(device.create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
-                        contents: bytemuck::cast_slice(&vertices),
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, /*COPY_DST means that you can upload to it later*/}));
-            } else {
-                queue.write_buffer(
-                    self.vertex_buffer.as_ref().unwrap(),
-                    0,
-                    bytemuck::cast_slice(&vertices),
-                );
-            }
-        }
-
-        if self.vertex_buffer.is_some() {
-            render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
-            render_pass.draw(0..6, 0..1);
-        }
+        //TODO: modify position in test_program every frame
+        queue.write_buffer(
+            self.buffer.as_ref().unwrap(),
+            0,
+            bytemuck::cast_slice(&[self.data]),
+        );
     }
 }
 
-impl<'a> Camera2D<'a> {
-    pub fn new(shader: ShaderModuleDescriptor<'a>, name: String) -> Box<Self> {
-        Box::new(Self {
-            to_render: vec![],
-            render_pipeline: None,
-            shader,
-            name,
-            vertex_buffer: None,
-            number_of_children_changed: false,
-        })
-    }
-
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D>> {
-        self.to_render.iter().find(|a| a.get_name() == name)
-    }
-
-    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D>> {
-        self.to_render.iter_mut().find(|a| a.get_name() == name)
-    }
-
-    pub fn remove_child(&mut self, name: String) {
-        self.number_of_children_changed = true;
-        let pos = self.to_render.iter().position(|a| a.get_name() == name);
-        if let Some(pos) = pos {
-            self.to_render.remove(pos);
-        }
-    }
-
-    pub fn add_child(&mut self, child: Box<dyn RenderObject2D>) {
-        self.to_render.push(child);
-        self.number_of_children_changed = true;
-    }
-
+fn create_bind_group_layout(device: &Device) -> BindGroupLayout {
+    device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        label: Some("a Camera2D bindgroup layout"),
+        entries: &[BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX,
+            ty: BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }],
+    })
 }
 
-fn create_pipeline(
-    device: &Device,
-    shader: ShaderModuleDescriptor,
-    config: &SurfaceConfiguration,
-    name: &str,
-) -> RenderPipeline {
-    let module = device.create_shader_module(shader);
+fn create_buffer(device: &Device, data: Camera2DData) -> Buffer {
+    device.create_buffer_init(&BufferInitDescriptor {
+        label: Some("a Camera2D buffer"),
+        contents: bytemuck::cast_slice(&[data]),
+        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+    })
+}
 
-    let layout_desc = PipelineLayoutDescriptor {
-        label: Some(&format!("({}) layout", name)),
-        bind_group_layouts: &[], //TODO: add layouts for cam pos and atlas_texture using an atlas texuture provider
-        immediate_size: 0,
-    };
-
-    let layout = device.create_pipeline_layout(&layout_desc);
-
-    let desc: RenderPipelineDescriptor<'_> = RenderPipelineDescriptor {
-        label: Some(&format!("({}) render pipeline", name)),
-        layout: Some(&layout),
-        vertex: VertexState {
-            module: &module,
-            entry_point: Some("vs_main"),
-            compilation_options: PipelineCompilationOptions::default(),
-            buffers: &[Vertex::desc()],
-        },
-        fragment: Some(FragmentState {
-            module: &module,
-            entry_point: Some("fs_main"),
-            compilation_options: PipelineCompilationOptions::default(),
-            targets: &[Some(wgpu::ColorTargetState {
-                format: config.format,
-                blend: Some(wgpu::BlendState::REPLACE),
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
-        }),
-        primitive: PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Cw,
-            cull_mode: Some(wgpu::Face::Front),
-            unclipped_depth: false,
-            polygon_mode: PolygonMode::Fill,
-            conservative: false,
-        },
-        depth_stencil: Some(wgpu::DepthStencilState {
-            format: Texture::DEPTH_FORMAT,
-            depth_write_enabled: Some(true),
-            depth_compare: Some(wgpu::CompareFunction::Less),
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        }),
-        multisample: wgpu::MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-        },
-        multiview_mask: None,
-        cache: None,
-    };
-
-    device.create_render_pipeline(&desc)
+fn create_bind_group(device: &Device, layout: &BindGroupLayout, buffer: &Buffer) -> BindGroup {
+    device.create_bind_group(&BindGroupDescriptor {
+        label: Some("a Camera2D bindgroup"),
+        layout,
+        entries: &[BindGroupEntry {
+            binding: 0,
+            resource: buffer.as_entire_binding(),
+        }],
+    })
 }

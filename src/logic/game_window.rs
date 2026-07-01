@@ -4,18 +4,18 @@ use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::WindowId};
 
 use crate::{
     logic::commands::Commands,
-    render::{render_objects::RenderObject, renderer::Renderer},
+    render::{render_objects::RenderLayer, renderer::Renderer},
 };
 
 pub struct GameWindow {
     pub game_info: GameInfo,
     input_handler: Box<dyn InputHandler>,
-    pub render_info: Option<Renderer>,
+    pub renderer: Option<Renderer>,
     timing: Timing,
 }
 
 pub struct SceneTree {
-    pub root: Vec<Box<dyn RenderObject>>,
+    pub root: Vec<Box<dyn RenderLayer>>,
 }
 
 struct Timing {
@@ -38,7 +38,7 @@ impl GameWindow {
     pub fn new(input_handler: Box<dyn InputHandler>) -> Self {
         Self {
             input_handler,
-            render_info: None,
+            renderer: None,
             game_info: GameInfo::new(),
             timing: Timing::new(),
         }
@@ -47,8 +47,8 @@ impl GameWindow {
     pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
         let info = pollster::block_on(Renderer::new(&event_loop));
         self.game_info.window_id = Some(info.window.id());
-        self.render_info = Some(info);
-        self.render_info.as_ref().unwrap().window.request_redraw();
+        self.renderer = Some(info);
+        self.renderer.as_ref().unwrap().window.request_redraw();
         self.input_handler.start(commands, &mut self.game_info)
     }
 
@@ -58,7 +58,7 @@ impl GameWindow {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        if let Some(render_info) = self.render_info.as_mut() {
+        if let Some(render_info) = self.renderer.as_mut() {
             if render_info.window.id() == window_id {
                 match event {
                     WindowEvent::Resized(size) => render_info.resize(size.width, size.height),

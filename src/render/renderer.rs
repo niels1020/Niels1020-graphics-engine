@@ -24,6 +24,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub async fn new(event_loop: &ActiveEventLoop) -> Self {
+        //FIXME: let user decide
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 

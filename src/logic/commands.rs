@@ -1,7 +1,7 @@
 use winit::{event_loop::ActiveEventLoop, window::WindowId};
 
 use crate::logic::{
-    app::Game,
+    game::Game,
     game_window::{GameWindow, InputHandler},
 };
 

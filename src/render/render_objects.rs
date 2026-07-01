@@ -2,7 +2,7 @@ use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration};
 
 use crate::render::texture::Texture;
 
-pub trait RenderObject {
+pub trait RenderLayer {
     fn render(
         &mut self,
         device: &Device,
