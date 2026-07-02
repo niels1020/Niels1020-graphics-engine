@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
