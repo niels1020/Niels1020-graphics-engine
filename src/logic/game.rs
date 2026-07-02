@@ -1,4 +1,4 @@
-use winit::{application::ApplicationHandler, event_loop::ActiveEventLoop};
+use winit::{application::ApplicationHandler, event_loop::ActiveEventLoop, window::WindowAttributes};
 
 use crate::logic::{commands::{Commands, run_command}, game_window::{GameWindow, InputHandler}};
 
@@ -10,7 +10,7 @@ pub struct Game {
 impl Game {
     pub fn new(main_input_handler: Box<dyn InputHandler>) -> Self {
         Self {
-            windows: vec![GameWindow::new(main_input_handler)],
+            windows: vec![GameWindow::new(main_input_handler, WindowAttributes::default())],
             commands: Commands::new()
         }
     }

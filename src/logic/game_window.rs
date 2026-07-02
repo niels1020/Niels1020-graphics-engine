@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::WindowId};
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::{WindowAttributes, WindowId}};
 
 use crate::{
     logic::commands::Commands,
@@ -12,6 +12,9 @@ pub struct GameWindow {
     input_handler: Box<dyn InputHandler>,
     pub renderer: Option<Renderer>,
     timing: Timing,
+
+    //TODO: remove after init
+    window_attributes: WindowAttributes
 }
 
 pub struct SceneTree {
@@ -35,17 +38,18 @@ impl Timing {
 }
 
 impl GameWindow {
-    pub fn new(input_handler: Box<dyn InputHandler>) -> Self {
+    pub fn new(input_handler: Box<dyn InputHandler>, window_attributes: WindowAttributes) -> Self {
         Self {
             input_handler,
             renderer: None,
             game_info: GameInfo::new(),
             timing: Timing::new(),
+            window_attributes,
         }
     }
 
     pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
-        let info = pollster::block_on(Renderer::new(&event_loop));
+        let info = pollster::block_on(Renderer::new(&event_loop, &self.window_attributes));
         self.game_info.window_id = Some(info.window.id());
         self.renderer = Some(info);
         self.renderer.as_ref().unwrap().window.request_redraw();

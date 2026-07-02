@@ -4,12 +4,11 @@ use wgpu_game_engine::{
         commands::Commands,
         game_window::{GameInfo, InputHandler},
     },
-    render::render_2d::{self, layer::RenderLayer2D},
+    render::render_2d::{self, camera::Camera2D, layer::RenderLayer2D},
     start_engine,
 };
 use winit::{
-    event::{ElementState, KeyEvent, WindowEvent},
-    keyboard::{KeyCode, PhysicalKey},
+    event::{ElementState, KeyEvent, WindowEvent}, keyboard::{KeyCode, PhysicalKey}, window::WindowAttributes,
 };
 
 fn main() {
@@ -41,7 +40,7 @@ impl InputHandler for Input {
             } => {
                 if key_state == ElementState::Released {
                     match code {
-                        KeyCode::Enter => commands.new_window(Box::new(Input::new())),
+                        KeyCode::Enter => commands.new_window(Box::new(Input::new()), WindowAttributes::default()),
                         _ => {}
                     }
                 }
@@ -53,8 +52,11 @@ impl InputHandler for Input {
     fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
     fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
-        let mut layer1 =
-            RenderLayer2D::new(include_wgsl!("../../assets/2d.wgsl"), "Test 2D".to_string());
+        let mut layer1 = RenderLayer2D::new(
+            include_wgsl!("../../assets/2d.wgsl"),
+            "Test 2D".to_string(),
+            Camera2D::new([800.0, 600.0]),
+        );
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         game_info.tree.root = vec![layer1];
     }

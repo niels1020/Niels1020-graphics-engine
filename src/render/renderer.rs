@@ -1,9 +1,14 @@
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use wgpu::{
-    CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits, Queue, RenderPass, TextureUsages, TextureViewDescriptor, wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration}
+    CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
+    Queue, RenderPass, TextureUsages, TextureViewDescriptor,
+    wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration},
 };
-use winit::{event_loop::ActiveEventLoop, window::Window};
+use winit::{
+    event_loop::ActiveEventLoop,
+    window::{Window, WindowAttributes},
+};
 
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
@@ -23,10 +28,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(event_loop: &ActiveEventLoop) -> Self {
-        //FIXME: let user decide
-        let window_attributes = Window::default_attributes();
-        let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+    pub async fn new(event_loop: &ActiveEventLoop, window_attributes: &WindowAttributes) -> Self {
+        let window = Arc::new(event_loop.create_window(window_attributes.clone()).unwrap());
 
         let size = window.inner_size();
 
@@ -166,9 +169,15 @@ impl Renderer {
         }
     }
 
-pub fn render_tree(&mut self, tree: &mut SceneTree, render_pass: &mut RenderPass) {
-    for object in tree.root.iter_mut() {
-        object.render(&self.device, &self.config, &self.queue, &self.depth_texture, render_pass);
+    pub fn render_tree(&mut self, tree: &mut SceneTree, render_pass: &mut RenderPass) {
+        for object in tree.root.iter_mut() {
+            object.render(
+                &self.device,
+                &self.config,
+                &self.queue,
+                &self.depth_texture,
+                render_pass,
+            );
+        }
     }
-}
 }

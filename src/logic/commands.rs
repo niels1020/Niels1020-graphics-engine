@@ -1,4 +1,7 @@
-use winit::{event_loop::ActiveEventLoop, window::WindowId};
+use winit::{
+    event_loop::ActiveEventLoop,
+    window::{WindowAttributes, WindowId},
+};
 
 use crate::logic::{
     game::Game,
@@ -8,7 +11,7 @@ use crate::logic::{
 pub(crate) enum Command {
     CloseWindow(WindowId),
     Exit,
-    NewWindow(Box<dyn InputHandler>),
+    NewWindow(Box<dyn InputHandler>, WindowAttributes),
 }
 
 pub struct Commands {
@@ -24,8 +27,13 @@ impl Commands {
         self.queue.push(Command::Exit);
     }
 
-    pub fn new_window(&mut self, input_handler: Box<dyn InputHandler>) {
-        self.queue.push(Command::NewWindow(input_handler));
+    pub fn new_window(
+        &mut self,
+        input_handler: Box<dyn InputHandler>,
+        window_attributes: WindowAttributes,
+    ) {
+        self.queue
+            .push(Command::NewWindow(input_handler, window_attributes));
     }
 
     pub fn new() -> Self {
@@ -33,11 +41,7 @@ impl Commands {
     }
 }
 
-pub(crate) fn run_command(
-    event_loop: &ActiveEventLoop,
-    game: &mut Game,
-    command: Command,
-) {
+pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Game, command: Command) {
     match command {
         Command::CloseWindow(window_id) => {
             game.windows.retain(|window| {
@@ -53,8 +57,9 @@ pub(crate) fn run_command(
             }
         }
         Command::Exit => event_loop.exit(),
-        Command::NewWindow(input_handler) => {
-            game.windows.push(GameWindow::new(input_handler));
+        Command::NewWindow(input_handler, window_atributes) => {
+            game.windows
+                .push(GameWindow::new(input_handler, window_atributes));
             let len = game.windows.len();
             game.windows
                 .get_mut(len - 1)

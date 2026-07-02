@@ -89,7 +89,7 @@ impl<'a> RenderLayer for RenderLayer2D<'a> {
 }
 
 impl<'a> RenderLayer2D<'a> {
-    pub fn new(shader: ShaderModuleDescriptor<'a>, name: String) -> Box<Self> {
+    pub fn new(shader: ShaderModuleDescriptor<'a>, name: String, camera: Camera2D) -> Box<Self> {
         Box::new(Self {
             to_render: vec![],
             render_pipeline: None,
@@ -97,8 +97,7 @@ impl<'a> RenderLayer2D<'a> {
             name,
             vertex_buffer: None,
             number_of_children_changed: false,
-            //FIXME: let user decide
-            camera: Camera2D::new([800.0,600.0]),
+            camera,
         })
     }
 
