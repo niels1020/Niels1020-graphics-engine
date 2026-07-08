@@ -8,7 +8,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(main_input_handler: Box<dyn InputHandler>) -> Self {
+    pub fn new(main_input_handler: Box<dyn InputHandler + Send>) -> Self {
         Self {
             windows: vec![GameWindow::new(main_input_handler, WindowAttributes::default())],
             commands: Commands::new()
@@ -20,6 +20,7 @@ impl Game {
             let command = self.commands.queue.remove(0);
             run_command(event_loop, self, command);
         }
+        
     }
 }
 

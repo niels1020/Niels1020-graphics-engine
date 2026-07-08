@@ -26,7 +26,7 @@ impl InputHandler for Input {
     ) {
         match event {
             WindowEvent::CloseRequested => {
-                commands.close_window(game_info.window_id.unwrap());
+                commands.close_window(game_info.window_id);
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -59,6 +59,9 @@ impl InputHandler for Input {
         );
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         game_info.tree.root = vec![layer1];
+    }
+    
+    fn exit(&mut self, game_info: &mut GameInfo) {
     }
 }
 

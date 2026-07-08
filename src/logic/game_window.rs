@@ -1,4 +1,5 @@
 use std::{
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -9,7 +10,10 @@ use winit::{
 };
 
 use crate::{
-    logic::commands::Commands,
+    logic::{
+        commands::Commands,
+        threaded::{SharedInfo, start_logic_thread},
+    },
     render::{render_objects::RenderLayer, renderer::Renderer},
 };
 
@@ -19,56 +23,43 @@ pub struct InitOnly {
 }
 
 pub struct GameWindow {
-    pub game_info: GameInfo,
-    input_handler: Box<dyn InputHandler>,
-    pub renderer: Option<Renderer>,
-    timing: Timing,
+    //gets removed after init
+    input_handler: Option<Box<dyn InputHandler + Send>>,
+    pub(crate) renderer: Option<Renderer>,
     init_only: Option<InitOnly>,
+    pub(crate) shared_info: Option<Arc<Mutex<SharedInfo>>>,
 }
 
 pub struct SceneTree {
-    pub root: Vec<Box<dyn RenderLayer>>,
-}
-
-struct Timing {
-    last_update: Instant,
-    render_time: Duration,
-    last_render: Instant,
-}
-
-impl Timing {
-    fn new() -> Self {
-        Self {
-            last_update: Instant::now(),
-            render_time: Duration::from_secs(0),
-            last_render: Instant::now(),
-        }
-    }
+    pub root: Vec<Box<dyn RenderLayer + Send>>,
 }
 
 impl GameWindow {
-    pub fn new(input_handler: Box<dyn InputHandler>, window_attributes: WindowAttributes) -> Self {
+    pub fn new(
+        input_handler: Box<dyn InputHandler + Send>,
+        window_attributes: WindowAttributes,
+    ) -> Self {
         Self {
-            input_handler,
+            input_handler: Some(input_handler),
             renderer: None,
-            game_info: GameInfo::new(),
-            timing: Timing::new(),
             init_only: Some(InitOnly { window_attributes }),
+            shared_info: None,
         }
     }
 
     pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
-        let info = pollster::block_on(Renderer::new(
-            &event_loop,
-            &self.init_only.as_ref().unwrap().window_attributes,
-        ));
-        self.game_info.window_id = Some(info.window.id());
+        let init_only = self.init_only.take().unwrap();
+
+        let info = pollster::block_on(Renderer::new(&event_loop, &init_only.window_attributes));
         self.renderer = Some(info);
         self.renderer.as_ref().unwrap().window.request_redraw();
-        self.input_handler.start(commands, &mut self.game_info);
 
+        let shared_info = start_logic_thread(
+            self.renderer.as_ref().unwrap().window.id(),
+            self.input_handler.take().unwrap(),
+        );
 
-        self.init_only = None;
+        self.shared_info = Some(shared_info);
     }
 
     pub fn window_event(
@@ -77,45 +68,24 @@ impl GameWindow {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        if let Some(render_info) = self.renderer.as_mut() {
-            if render_info.window.id() == window_id {
+        if let Some(renderer) = self.renderer.as_mut() {
+            if renderer.window.id() == window_id {
                 match event {
-                    WindowEvent::Resized(size) => render_info.resize(size.width, size.height),
+                    WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
-                        let now = Instant::now();
-
-                        //logic
-                        let delta = now - self.timing.last_update;
-                        self.timing.last_update = now;
-                        self.input_handler.update(
-                            commands,
-                            &mut self.game_info,
-                            delta.as_secs_f64(),
-                        );
-                        //rendering at selected frame rate
-                        if now - self.timing.last_render
-                            >= Duration::from_millis(1000 / self.game_info.refresh_rate)
                         {
-                            let befor_render = now;
-                            self.timing.last_render = now;
-                            render_info.render(&mut self.game_info);
-                            self.timing.render_time = now - befor_render;
+                            let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+                            renderer.render(&mut shared.game_info);
                         }
-                        render_info.window.request_redraw();
+                        renderer.window.request_redraw();
                     }
-                    _ => self
-                        .input_handler
-                        .window_event(commands, &mut self.game_info, event),
+                    _ => {}
                 }
-            } else {
-                self.input_handler.other_window_event(
-                    commands,
-                    &mut self.game_info,
-                    window_id,
-                    event,
-                );
             }
         }
+        let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+        shared.events.push((event, window_id));
+        commands.append(&mut shared.commands);
     }
 }
 
@@ -144,19 +114,21 @@ pub trait InputHandler {
     fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, delta: f64);
 
     fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
+
+    fn exit(&mut self, game_info: &mut GameInfo);
 }
 
 pub struct GameInfo {
     pub tree: SceneTree,
-    pub window_id: Option<WindowId>,
+    pub window_id: WindowId,
     pub refresh_rate: u64,
 }
 
 impl GameInfo {
-    fn new() -> Self {
+    pub(crate) fn new(window_id: WindowId) -> Self {
         Self {
             tree: SceneTree::new(),
-            window_id: None,
+            window_id,
             refresh_rate: 144,
         }
     }

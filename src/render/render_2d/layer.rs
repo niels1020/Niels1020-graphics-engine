@@ -12,7 +12,7 @@ use crate::{
 
 #[allow(dead_code)]
 pub struct RenderLayer2D<'a> {
-    to_render: Vec<Box<dyn RenderObject2D>>,
+    to_render: Vec<Box<dyn RenderObject2D + Send>>,
     render_pipeline: Option<RenderPipeline>,
     shader: ShaderModuleDescriptor<'a>,
     name: String,
@@ -101,11 +101,11 @@ impl<'a> RenderLayer2D<'a> {
         })
     }
 
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D>> {
+    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D + Send>> {
         self.to_render.iter().find(|a| a.get_name() == name)
     }
 
-    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D>> {
+    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D + Send>> {
         self.to_render.iter_mut().find(|a| a.get_name() == name)
     }
 
@@ -117,7 +117,7 @@ impl<'a> RenderLayer2D<'a> {
         }
     }
 
-    pub fn add_child(&mut self, child: Box<dyn RenderObject2D>) {
+    pub fn add_child(&mut self, child: Box<dyn RenderObject2D + Send>) {
         self.to_render.push(child);
         self.number_of_children_changed = true;
     }

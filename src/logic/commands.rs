@@ -11,7 +11,7 @@ use crate::logic::{
 pub(crate) enum Command {
     CloseWindow(WindowId),
     Exit,
-    NewWindow(Box<dyn InputHandler>, WindowAttributes),
+    NewWindow(Box<dyn InputHandler + Send>, WindowAttributes),
 }
 
 pub struct Commands {
@@ -29,11 +29,16 @@ impl Commands {
 
     pub fn new_window(
         &mut self,
-        input_handler: Box<dyn InputHandler>,
+        input_handler: Box<dyn InputHandler + Send>,
         window_attributes: WindowAttributes,
     ) {
         self.queue
             .push(Command::NewWindow(input_handler, window_attributes));
+    }
+
+    //leaves other empty
+    pub fn append(&mut self, other: &mut Self) {
+        self.queue.append(&mut other.queue);
     }
 
     pub fn new() -> Self {
@@ -45,11 +50,9 @@ pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Game, command
     match command {
         Command::CloseWindow(window_id) => {
             game.windows.retain(|window| {
-                if let Some(id) = window.game_info.window_id {
-                    id != window_id
-                } else {
-                    true
-                }
+                let mut shared = window.shared_info.as_ref().unwrap().lock().unwrap();
+                shared.should_despawn = true;
+                shared.game_info.window_id != window_id
             });
             if game.windows.is_empty() {
                 println!("No windows open: Exiting");
