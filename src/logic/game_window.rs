@@ -1,20 +1,29 @@
-use std::time::{Duration, Instant};
+use std::{
+    time::{Duration, Instant},
+};
 
-use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::{WindowAttributes, WindowId}};
+use winit::{
+    event::WindowEvent,
+    event_loop::ActiveEventLoop,
+    window::{WindowAttributes, WindowId},
+};
 
 use crate::{
     logic::commands::Commands,
     render::{render_objects::RenderLayer, renderer::Renderer},
 };
 
+//get removed after init
+pub struct InitOnly {
+    window_attributes: WindowAttributes,
+}
+
 pub struct GameWindow {
     pub game_info: GameInfo,
     input_handler: Box<dyn InputHandler>,
     pub renderer: Option<Renderer>,
     timing: Timing,
-
-    //TODO: remove after init
-    window_attributes: WindowAttributes
+    init_only: Option<InitOnly>,
 }
 
 pub struct SceneTree {
@@ -44,16 +53,22 @@ impl GameWindow {
             renderer: None,
             game_info: GameInfo::new(),
             timing: Timing::new(),
-            window_attributes,
+            init_only: Some(InitOnly { window_attributes }),
         }
     }
 
     pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
-        let info = pollster::block_on(Renderer::new(&event_loop, &self.window_attributes));
+        let info = pollster::block_on(Renderer::new(
+            &event_loop,
+            &self.init_only.as_ref().unwrap().window_attributes,
+        ));
         self.game_info.window_id = Some(info.window.id());
         self.renderer = Some(info);
         self.renderer.as_ref().unwrap().window.request_redraw();
-        self.input_handler.start(commands, &mut self.game_info)
+        self.input_handler.start(commands, &mut self.game_info);
+
+
+        self.init_only = None;
     }
 
     pub fn window_event(
