@@ -61,7 +61,7 @@ impl InputHandler for Input {
         game_info.tree.root = vec![layer1];
     }
     
-    fn exit(&mut self, game_info: &mut GameInfo) {
+    fn exit(&mut self, _game_info: &mut GameInfo) {
     }
 }
 

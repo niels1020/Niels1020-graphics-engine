@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
+use std::sync::{Arc, Mutex};
 
 use winit::{
     event::WindowEvent,
@@ -47,7 +44,7 @@ impl GameWindow {
         }
     }
 
-    pub fn start(&mut self, commands: &mut Commands, event_loop: &ActiveEventLoop) {
+    pub fn start(&mut self, _commands: &mut Commands, event_loop: &ActiveEventLoop) {
         let init_only = self.init_only.take().unwrap();
 
         let info = pollster::block_on(Renderer::new(&event_loop, &init_only.window_attributes));
