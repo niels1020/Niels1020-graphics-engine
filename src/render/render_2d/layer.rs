@@ -11,16 +11,16 @@ use crate::{
 };
 
 #[allow(dead_code)]
-pub struct RenderLayer2D<'a> {
+pub struct RenderLayer2D {
     to_render: Vec<Box<dyn RenderObject2D + Send>>,
     render_pipeline: Option<RenderPipeline>,
-    shader: ShaderModuleDescriptor<'a>,
+    shader: ShaderModuleDescriptor<'static>,
     name: String,
     vertex_buffer: Option<Buffer>,
     number_of_children_changed: bool,
 
     //TODO: atlas_texture: AtlasTexture,
-    camera: Camera2D,
+    pub camera: Camera2D,
 }
 
 pub trait RenderObject2D {
@@ -29,7 +29,7 @@ pub trait RenderObject2D {
     fn get_name(&self) -> String;
 }
 
-impl<'a> RenderLayer for RenderLayer2D<'a> {
+impl RenderLayer for RenderLayer2D {
     fn render(
         &mut self,
         device: &wgpu::Device,
@@ -86,10 +86,14 @@ impl<'a> RenderLayer for RenderLayer2D<'a> {
             render_pass.draw(0..6, 0..1);
         }
     }
+    
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
-impl<'a> RenderLayer2D<'a> {
-    pub fn new(shader: ShaderModuleDescriptor<'a>, name: String, camera: Camera2D) -> Box<Self> {
+impl RenderLayer2D {
+    pub fn new(shader: ShaderModuleDescriptor<'static>, name: String, camera: Camera2D) -> Box<Self> {
         Box::new(Self {
             to_render: vec![],
             render_pipeline: None,
@@ -125,7 +129,7 @@ impl<'a> RenderLayer2D<'a> {
 
 fn create_pipeline(
     device: &Device,
-    shader: ShaderModuleDescriptor,
+    shader: ShaderModuleDescriptor<'static>,
     config: &SurfaceConfiguration,
     name: &str,
     camera_layout: &BindGroupLayout,

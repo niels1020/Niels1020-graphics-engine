@@ -8,7 +8,9 @@ use wgpu_game_engine::{
     start_engine,
 };
 use winit::{
-    event::{ElementState, KeyEvent, WindowEvent}, keyboard::{KeyCode, PhysicalKey}, window::WindowAttributes,
+    event::{ElementState, KeyEvent, WindowEvent},
+    keyboard::{KeyCode, PhysicalKey},
+    window::WindowAttributes,
 };
 
 fn main() {
@@ -40,8 +42,30 @@ impl InputHandler for Input {
             } => {
                 if key_state == ElementState::Released {
                     match code {
-                        KeyCode::Enter => commands.new_window(Box::new(Input::new()), WindowAttributes::default()),
+                        KeyCode::Enter => {
+                            commands.new_window(Box::new(Input::new()), WindowAttributes::default())
+                        }
                         _ => {}
+                    }
+                }
+            }
+            WindowEvent::CursorMoved {
+                device_id: _,
+                position,
+            } => {
+                if let Some(layer) = game_info.tree.root.get_mut(0) {
+                    //TODO: do most of this for the user
+                    let any = layer.as_any_mut();
+                    match any.downcast_mut::<RenderLayer2D>() {
+                        Some(layer2d) => {
+                            layer2d.camera.data.position = [
+                                (position.x as f32)
+                                    - (layer2d.camera.data.render_resolution[0] / 2.0),
+                                (position.y as f32)
+                                    - (layer2d.camera.data.render_resolution[1] / 2.0),
+                            ]
+                        }
+                        None => {}
                     }
                 }
             }
@@ -60,9 +84,8 @@ impl InputHandler for Input {
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         game_info.tree.root = vec![layer1];
     }
-    
-    fn exit(&mut self, _game_info: &mut GameInfo) {
-    }
+
+    fn exit(&mut self, _game_info: &mut GameInfo) {}
 }
 
 impl Input {

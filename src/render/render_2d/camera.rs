@@ -50,7 +50,6 @@ impl Camera2D {
             ))
         }
 
-        //TODO: modify position in test_program every frame
         queue.write_buffer(
             self.buffer.as_ref().unwrap(),
             0,
