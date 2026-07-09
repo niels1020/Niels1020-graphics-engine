@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 use winit::{
     event::WindowEvent,
@@ -25,6 +28,7 @@ pub struct GameWindow {
     pub(crate) renderer: Option<Renderer>,
     init_only: Option<InitOnly>,
     pub(crate) shared_info: Option<Arc<Mutex<SharedInfo>>>,
+    last_render: Instant,
 }
 
 pub struct SceneTree {
@@ -41,6 +45,7 @@ impl GameWindow {
             renderer: None,
             init_only: Some(InitOnly { window_attributes }),
             shared_info: None,
+            last_render: Instant::now(),
         }
     }
 
@@ -72,7 +77,13 @@ impl GameWindow {
                     WindowEvent::RedrawRequested => {
                         {
                             let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
-                            renderer.render(&mut shared.game_info);
+                            let now = Instant::now();
+                            if (now - self.last_render)
+                                >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
+                            {
+                                self.last_render = now;
+                                renderer.render(&mut shared.game_info);
+                            }
                         }
                         renderer.window.request_redraw();
                     }

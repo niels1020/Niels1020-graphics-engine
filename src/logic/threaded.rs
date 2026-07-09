@@ -16,6 +16,7 @@ pub(crate) struct SharedInfo {
     pub commands: Commands,
     pub events: Vec<(WindowEvent, WindowId)>,
     pub should_despawn: bool,
+    pub refresh_rate: u64,
 }
 
 pub(crate) fn start_logic_thread(
@@ -27,6 +28,7 @@ pub(crate) fn start_logic_thread(
         commands: Commands::new(),
         events: vec![],
         should_despawn: false,
+        refresh_rate: 144,
     }));
     let shared_info_thread = shared_info.clone();
 
