@@ -104,7 +104,6 @@ impl SceneTree {
 }
 
 pub trait InputHandler {
-    //TODO: don't give raw windowevents to the user
     fn window_event(
         &mut self,
         commands: &mut Commands,
