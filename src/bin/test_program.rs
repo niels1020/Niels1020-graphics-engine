@@ -4,7 +4,10 @@ use wgpu_game_engine::{
         commands::Commands,
         game_window::{GameInfo, InputHandler},
     },
-    render::render_2d::{self, camera::Camera2D, layer::RenderLayer2D},
+    render::{
+        render_2d::{self, camera::Camera2D, layer::RenderLayer2D},
+        render_layers::layer_as_type_mut,
+    },
     start_engine,
 };
 use winit::{
@@ -54,9 +57,7 @@ impl InputHandler for Input {
                 position,
             } => {
                 if let Some(layer) = game_info.tree.root.get_mut(0) {
-                    //TODO: do most of this for the user
-                    let any = layer.as_any_mut();
-                    match any.downcast_mut::<RenderLayer2D>() {
+                    match layer_as_type_mut::<RenderLayer2D>(layer) {
                         Some(layer2d) => {
                             layer2d.camera.data.position = [
                                 (position.x as f32)

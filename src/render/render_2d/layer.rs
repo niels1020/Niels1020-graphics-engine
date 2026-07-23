@@ -7,7 +7,7 @@ use wgpu::{
 
 use crate::{
     common::Vertex,
-    render::{render_2d::camera::Camera2D, render_objects::RenderLayer, texture::Texture},
+    render::{render_2d::camera::Camera2D, render_layers::RenderLayer, texture::Texture},
 };
 
 #[allow(dead_code)]

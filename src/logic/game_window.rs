@@ -14,7 +14,7 @@ use crate::{
         commands::Commands,
         threaded::{SharedInfo, start_logic_thread},
     },
-    render::{render_objects::RenderLayer, renderer::Renderer},
+    render::{render_layers::RenderLayer, renderer::Renderer},
 };
 
 //get removed after init
