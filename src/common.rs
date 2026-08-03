@@ -36,6 +36,9 @@ pub const CAMERA_NEAR_PLANE: f32 = 0.1;
 /// Camera far plane distance
 pub const CAMERA_FAR_PLANE: f32 = 1000.0; //maybe to far
 
+pub const CAMERA_BINDING: u32 = 0;
+pub const TEXTURE_BINDING: u32 = 1;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum CompareFunction {
@@ -51,11 +54,12 @@ pub enum CompareFunction {
 }
 
 /// Geometric data for a vertex (position and texture coordinates)
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy, Clone, Debug, NoUninit)]
 pub struct Vertex {
     pub position: [f32; 3],
     pub tex_coords: [f32; 2],
+    pub type_id: u32, //id to identify different types of objects in shader
 }
 
 impl Vertex {
@@ -74,17 +78,23 @@ impl Vertex {
                 wgpu::VertexAttribute {
                     offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x2, // NEW!
+                    format: wgpu::VertexFormat::Float32x2,
+                },
+                wgpu::VertexAttribute {
+                    offset: (mem::size_of::<[f32; 3]>() + mem::size_of::<[f32; 2]>()) as wgpu::BufferAddress,
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Uint32,
                 },
             ],
         }
     }
 
     /// Create a new vertex with the given position and texture coordinates
-    pub fn new(x: f32, y: f32, z: f32, t_x: f32, t_y: f32) -> Self {
+    pub fn new(x: f32, y: f32, z: f32, t_x: f32, t_y: f32, type_id: u32) -> Self {
         Self {
             position: [x, y, z],
             tex_coords: [t_x, t_y],
+            type_id,
         }
     }
 }

@@ -1,3 +1,4 @@
+FIXME: remove all unwraps (WE NEED PROPER ERROR HANDLING)
 TODO: text rendering
 TODO: add something to generate atlas textures
 TODO: don't give raw windowevents to the user

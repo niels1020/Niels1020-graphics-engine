@@ -1,13 +1,16 @@
 use wgpu::{
-    BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
+    BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
     PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue, RenderPass, RenderPipeline,
     RenderPipelineDescriptor, ShaderModuleDescriptor, SurfaceConfiguration, VertexState,
     util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
-    common::Vertex,
-    render::{render_2d::camera::Camera2D, render_layers::RenderLayer, texture::Texture},
+    common::{CAMERA_BINDING, TEXTURE_BINDING, Vertex},
+    render::{
+        atlas::AtlasTexture, render_2d::camera::Camera2D, render_layers::RenderLayer,
+        texture::Texture,
+    },
 };
 
 #[allow(dead_code)]
@@ -17,15 +20,17 @@ pub struct RenderLayer2D {
     shader: ShaderModuleDescriptor<'static>,
     name: String,
     vertex_buffer: Option<Buffer>,
+    vertices_len: usize,
     number_of_children_changed: bool,
+    atlas_bind: Option<BindGroup>,
 
-    //TODO: atlas_texture: AtlasTexture,
+    atlas_texture: AtlasTexture,
     pub camera: Camera2D,
 }
 
 pub trait RenderObject2D {
     fn have_vertices_changed(&mut self) -> bool;
-    fn get_vertices(&mut self) -> Vec<Vertex>;
+    fn get_vertices(&mut self, atlas: &mut AtlasTexture) -> Vec<Vertex>;
     fn get_name(&self) -> String;
 }
 
@@ -47,7 +52,9 @@ impl RenderLayer for RenderLayer2D {
                 config,
                 &self.name,
                 self.camera.layout.as_ref().unwrap(),
+                &self.atlas_texture.create_layout(device),
             ));
+            self.atlas_texture.build(queue, device);
         }
 
         let mut buffer_need_update = self.vertex_buffer.is_none() | self.number_of_children_changed;
@@ -61,7 +68,7 @@ impl RenderLayer for RenderLayer2D {
         if buffer_need_update {
             let mut vertices = vec![];
             for i in self.to_render.iter_mut() {
-                vertices.extend(i.get_vertices());
+                vertices.extend(i.get_vertices(&mut self.atlas_texture));
             }
 
             if vertices.is_empty() {
@@ -77,23 +84,35 @@ impl RenderLayer for RenderLayer2D {
                     bytemuck::cast_slice(&vertices),
                 );
             }
+
+            self.vertices_len = vertices.len();
+        }
+
+        let atlas_rebuilt = self.atlas_texture.build_if_needed(queue, device);
+        if atlas_rebuilt {
+            self.atlas_bind = Some(self.atlas_texture.bind(device));
         }
 
         if self.vertex_buffer.is_some() {
             render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
             render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
-            render_pass.set_bind_group(0, self.camera.bind.as_ref().unwrap(), &[]);
-            render_pass.draw(0..6, 0..1);
+            render_pass.set_bind_group(CAMERA_BINDING, self.camera.bind.as_ref().unwrap(), &[]);
+            render_pass.set_bind_group(TEXTURE_BINDING, self.atlas_bind.as_ref().unwrap(), &[]);
+            render_pass.draw(0..self.vertices_len as u32, 0..1);
         }
     }
-    
+
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
 
 impl RenderLayer2D {
-    pub fn new(shader: ShaderModuleDescriptor<'static>, name: String, camera: Camera2D) -> Box<Self> {
+    pub fn new(
+        shader: ShaderModuleDescriptor<'static>,
+        name: String,
+        camera: Camera2D,
+    ) -> Box<Self> {
         Box::new(Self {
             to_render: vec![],
             render_pipeline: None,
@@ -102,6 +121,9 @@ impl RenderLayer2D {
             vertex_buffer: None,
             number_of_children_changed: false,
             camera,
+            atlas_texture: AtlasTexture::new(),
+            vertices_len: 0,
+            atlas_bind: None
         })
     }
 
@@ -133,12 +155,13 @@ fn create_pipeline(
     config: &SurfaceConfiguration,
     name: &str,
     camera_layout: &BindGroupLayout,
+    atlas_layout: &BindGroupLayout,
 ) -> RenderPipeline {
     let module = device.create_shader_module(shader);
 
     let layout_desc = PipelineLayoutDescriptor {
         label: Some(&format!("({}) layout", name)),
-        bind_group_layouts: &[Some(camera_layout)], //TODO: add layout for atlas_texture using an atlas texuture provider
+        bind_group_layouts: &[Some(camera_layout), Some(atlas_layout)],
         immediate_size: 0,
     };
 

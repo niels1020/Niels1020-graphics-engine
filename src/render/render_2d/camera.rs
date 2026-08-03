@@ -4,6 +4,8 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
 };
 
+use crate::common::CAMERA_BINDING;
+
 pub struct Camera2D {
     pub(crate) layout: Option<BindGroupLayout>,
     pub(crate) bind: Option<BindGroup>,
@@ -17,7 +19,7 @@ pub struct Camera2D {
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Camera2DData {
     pub position: [f32; 2],
-    pub render_resolution: [f32; 2]
+    pub render_resolution: [f32; 2],
 }
 
 impl Camera2D {
@@ -28,7 +30,7 @@ impl Camera2D {
             bind: None,
             data: Camera2DData {
                 position: [0.0, 0.0],
-                render_resolution
+                render_resolution,
             },
         }
     }
@@ -58,11 +60,12 @@ impl Camera2D {
     }
 }
 
+//always binding 0
 fn create_bind_group_layout(device: &Device) -> BindGroupLayout {
     device.create_bind_group_layout(&BindGroupLayoutDescriptor {
         label: Some("a Camera2D bindgroup layout"),
         entries: &[BindGroupLayoutEntry {
-            binding: 0,
+            binding: CAMERA_BINDING,
             visibility: ShaderStages::VERTEX,
             ty: BindingType::Buffer {
                 ty: wgpu::BufferBindingType::Uniform,

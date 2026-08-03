@@ -83,6 +83,7 @@ impl InputHandler for Input {
             Camera2D::new([800.0, 600.0]),
         );
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
+        layer1.add_child(render_2d::render_objects::test::TextureTest::new());
         game_info.tree.root = vec![layer1];
     }
 
