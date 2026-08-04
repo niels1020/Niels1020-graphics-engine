@@ -1,7 +1,7 @@
 use crate::{
     common::Vertex,
     render::{
-        atlas::{self, AtlasTexture, Rect},
+        atlas::AtlasTexture,
         render_2d::layer::RenderObject2D,
     },
 };
@@ -21,7 +21,7 @@ impl RenderObject2D for VerticesTest {
         !self.has_updated
     }
 
-    fn get_vertices(&mut self, atlas: &mut AtlasTexture) -> Vec<crate::common::Vertex> {
+    fn get_vertices(&mut self, _: &mut AtlasTexture) -> Vec<crate::common::Vertex> {
         self.has_updated = true;
         vec![
             Vertex::new(400.0, 0.0, 0.0, 0.0, 0.0, 0),
@@ -69,7 +69,7 @@ impl RenderObject2D for TextureTest {
             );
             atlas.add_image(
                 image::load_from_memory(include_bytes!(
-                    "./../../../../assets/test_textures/zon en planeet.png"
+                    "./../../../../assets/test_textures/zon en planeet.PNG"
                 ))
                 .unwrap(),
                 "zon en planeet".to_string(),
