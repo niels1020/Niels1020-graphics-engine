@@ -175,7 +175,7 @@ fn create_pipeline(
             module: &module,
             entry_point: Some("vs_main"),
             compilation_options: PipelineCompilationOptions::default(),
-            buffers: &[Vertex::desc()],
+            buffers: &[Some(Vertex::desc())],
         },
         fragment: Some(FragmentState {
             module: &module,

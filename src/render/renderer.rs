@@ -48,6 +48,7 @@ impl Renderer {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
                 compatible_surface: Some(&surface),
+                apply_limit_buckets: false,
             })
             .await
             .unwrap();
@@ -89,6 +90,7 @@ impl Renderer {
                 desired_maximum_frame_latency: MAX_FRAME_LATENCY,
                 alpha_mode: surface_caps.alpha_modes[0],
                 view_formats: vec![],
+                color_space: wgpu::SurfaceColorSpace::Auto,
             };
 
         surface.configure(&device, &config);
@@ -153,7 +155,7 @@ impl Renderer {
 
             // submit will accept anything that implements IntoIter
             self.queue.submit(std::iter::once(encoder.finish()));
-            output.present();
+            self.queue.present(output);
         }
     }
 
