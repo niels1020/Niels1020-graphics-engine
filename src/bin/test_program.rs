@@ -17,10 +17,12 @@ use winit::{
 };
 
 fn main() {
-    start_engine(Box::new(Input::new()));
+    start_engine(Box::new(Input::new()), WindowAttributes::default());
 }
 
-struct Input {}
+struct Input {
+    resolution: [f32; 2],
+}
 
 impl InputHandler for Input {
     fn window_event(
@@ -61,15 +63,18 @@ impl InputHandler for Input {
                         Some(layer2d) => {
                             layer2d.camera.data.position = [
                                 (position.x as f32)
-                                    - (layer2d.camera.data.render_resolution[0] / 2.0),
+                                    - (self.resolution[0] / 2.0),
                                 (position.y as f32)
-                                    - (layer2d.camera.data.render_resolution[1] / 2.0),
+                                    - (self.resolution[1] / 2.0),
                             ]
                         }
                         None => {}
                     }
                 }
-            }
+            },
+            WindowEvent::Resized(new_size) => {
+                self.resolution = [new_size.width as f32, new_size.height as f32]
+            },
             _ => {}
         }
     }
@@ -92,6 +97,8 @@ impl InputHandler for Input {
 
 impl Input {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            resolution: [1.0; 2],
+        }
     }
 }

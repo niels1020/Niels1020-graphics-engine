@@ -67,13 +67,6 @@ impl RenderObject2D for TextureTest {
                 .unwrap(),
                 "profiel".to_string(),
             );
-            atlas.add_image(
-                image::load_from_memory(include_bytes!(
-                    "./../../../../assets/test_textures/zon en planeet.png"
-                ))
-                .unwrap(),
-                "zon en planeet".to_string(),
-            );
         }
 
         self.has_updated = true;

@@ -43,6 +43,7 @@ pub(crate) fn start_logic_thread(
 
         let mut last_update = Instant::now();
         loop {
+            //frame update
             {
                 let mut shared = shared_info_thread.lock().unwrap();
                 let mut commands = Commands::new();
@@ -80,6 +81,8 @@ pub(crate) fn start_logic_thread(
                 }
             }
 
+
+            //check if it should despawn
             {
                 let mut shared = shared_info_thread.lock().unwrap();
                 if shared.should_despawn {

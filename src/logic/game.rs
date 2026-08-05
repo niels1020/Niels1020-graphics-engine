@@ -1,17 +1,25 @@
-use winit::{application::ApplicationHandler, event_loop::ActiveEventLoop, window::WindowAttributes};
+use winit::{
+    application::ApplicationHandler, event_loop::ActiveEventLoop, window::WindowAttributes,
+};
 
-use crate::logic::{commands::{Commands, run_command}, game_window::{GameWindow, InputHandler}};
+use crate::logic::{
+    commands::{Commands, run_command},
+    game_window::{GameWindow, InputHandler},
+};
 
 pub struct Game {
-    pub (crate) windows: Vec<GameWindow>,
-    pub (crate) commands: Commands
+    pub(crate) windows: Vec<GameWindow>,
+    pub(crate) commands: Commands,
 }
 
 impl Game {
-    pub fn new(main_input_handler: Box<dyn InputHandler + Send>) -> Self {
+    pub fn new(
+        main_input_handler: Box<dyn InputHandler + Send>,
+        window_attributes: WindowAttributes,
+    ) -> Self {
         Self {
-            windows: vec![GameWindow::new(main_input_handler, WindowAttributes::default())],
-            commands: Commands::new()
+            windows: vec![GameWindow::new(main_input_handler, window_attributes)],
+            commands: Commands::new(),
         }
     }
 
@@ -20,14 +28,16 @@ impl Game {
             let command = self.commands.queue.remove(0);
             run_command(event_loop, self, command);
         }
-        
     }
 }
 
 impl ApplicationHandler for Game {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let len = self.windows.len();
-        self.windows.get_mut(len - 1).unwrap().start(&mut self.commands, event_loop);
+        self.windows
+            .get_mut(len - 1)
+            .unwrap()
+            .start(&mut self.commands, event_loop);
         self.run_commands(event_loop);
     }
 
