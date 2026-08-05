@@ -62,19 +62,17 @@ impl InputHandler for Input {
                     match layer_as_type_mut::<RenderLayer2D>(layer) {
                         Some(layer2d) => {
                             layer2d.camera.data.position = [
-                                (position.x as f32)
-                                    - (self.resolution[0] / 2.0),
-                                (position.y as f32)
-                                    - (self.resolution[1] / 2.0),
+                                ((position.x as f32) - (self.resolution[0] / 2.0)) * -1.0,
+                                (position.y as f32) - (self.resolution[1] / 2.0),
                             ]
                         }
                         None => {}
                     }
                 }
-            },
+            }
             WindowEvent::Resized(new_size) => {
                 self.resolution = [new_size.width as f32, new_size.height as f32]
-            },
+            }
             _ => {}
         }
     }
