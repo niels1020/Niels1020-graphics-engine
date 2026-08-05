@@ -70,10 +70,15 @@ impl AtlasTexture {
         self.name_id_lookup.insert(name, id);
     }
 
-    pub fn remove_image(&mut self, name: String) {
+    pub fn remove_image(&mut self, name: String) -> Result<(), String> {
         self.need_update = true;
-        let id = self.name_id_lookup.remove(&name).unwrap();
-        self.images.remove(id);
+        match self.name_id_lookup.remove(&name) {
+            Some(id) => {
+                self.images.remove(id);
+                Ok(())
+            }
+            None => Err(format!("The image {} doesn't exist in this atlas", name)),
+        }
     }
 
     pub fn build_if_needed(&mut self, queue: &Queue, device: &Device) -> bool {
@@ -85,10 +90,18 @@ impl AtlasTexture {
         }
     }
 
-    pub fn get_relative_texture_rect(&mut self, name: String) -> &Rect {
+    pub fn get_relative_texture_rect(&mut self, name: String) -> Result<&Rect, String> {
         let _ = self.build_positions();
-        let id = self.name_id_lookup.get(&name).unwrap();
-        self.relative_positions.get(*id).unwrap()
+        match self.name_id_lookup.get(&name) {
+            Some(id) => match self.relative_positions.get(*id) {
+                Some(rect) => Ok(rect),
+                None => Err(format!(
+                    "The key {} exists but there isn't a linked rect. Please make sure you have called build_positions() or build_if_needed()",
+                    name
+                )),
+            },
+            None => Err(format!("Can't find key {}", name)),
+        }
     }
 
     fn build_positions(&mut self) {

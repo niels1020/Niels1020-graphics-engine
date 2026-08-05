@@ -71,7 +71,7 @@ impl RenderObject2D for TextureTest {
 
         self.has_updated = true;
 
-        let rect = atlas.get_relative_texture_rect("profiel".to_string());
+        let rect = atlas.get_relative_texture_rect("profiel".to_string()).unwrap();
         let (top_left, top_right, bottom_left, bottom_right) = rect.bounds();
 
         vec![
