@@ -6,7 +6,7 @@ use wgpu::{
     BindGroupLayoutEntry, Device, Queue, ShaderStages, TextureSampleType, TextureViewDimension,
 };
 
-use crate::render::texture::Texture;
+use crate::render::utils::texture::Texture;
 
 pub struct Rect {
     pub top_left: [f32; 2],

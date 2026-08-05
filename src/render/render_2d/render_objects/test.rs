@@ -1,7 +1,7 @@
 use crate::{
     common::Vertex,
     render::{
-        atlas::AtlasTexture,
+        utils::atlas::AtlasTexture,
         render_2d::layer::RenderObject2D,
     },
 };

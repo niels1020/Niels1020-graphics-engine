@@ -13,7 +13,7 @@ use winit::{
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
     logic::game_window::{GameInfo, SceneTree},
-    render::texture::Texture,
+    render::utils::texture::Texture,
 };
 
 pub struct Renderer {

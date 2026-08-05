@@ -8,8 +8,9 @@ use wgpu::{
 use crate::{
     common::{CAMERA_BINDING, TEXTURE_BINDING, Vertex},
     render::{
-        atlas::AtlasTexture, render_2d::camera::Camera2D, render_layers::RenderLayer,
-        texture::Texture,
+        render_2d::camera::Camera2D,
+        render_layers::RenderLayer,
+        utils::{atlas::AtlasTexture, texture::Texture},
     },
 };
 
@@ -123,7 +124,7 @@ impl RenderLayer2D {
             camera,
             atlas_texture: AtlasTexture::new(),
             vertices_len: 0,
-            atlas_bind: None
+            atlas_bind: None,
         })
     }
 

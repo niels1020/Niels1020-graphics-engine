@@ -2,7 +2,7 @@ use std::any::Any;
 
 use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration};
 
-use crate::render::texture::Texture;
+use crate::render::utils::texture::Texture;
 
 pub trait RenderLayer {
     fn render(
