@@ -21,7 +21,7 @@ impl RenderObject2D for VerticesTest {
         !self.has_updated
     }
 
-    fn get_vertices(&mut self, _: &mut AtlasTexture) -> Vec<crate::common::Vertex> {
+    fn get_vertices(&mut self, _: &mut AtlasTexture, _: [f32;2]) -> Vec<crate::common::Vertex> {
         self.has_updated = true;
         vec![
             Vertex::new(400.0, 0.0, 0.0, 0.0, 0.0, 0),
@@ -35,6 +35,10 @@ impl RenderObject2D for VerticesTest {
 
     fn get_name(&self) -> String {
         "VERTICES TEST".to_string()
+    }
+    
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }
 
@@ -57,7 +61,7 @@ impl RenderObject2D for TextureTest {
         !self.has_updated
     }
 
-    fn get_vertices(&mut self, atlas: &mut AtlasTexture) -> Vec<Vertex> {
+    fn get_vertices(&mut self, atlas: &mut AtlasTexture, _: [f32;2]) -> Vec<Vertex> {
         if !self.image_added {
             self.image_added = true;
             atlas.add_image(
@@ -86,5 +90,9 @@ impl RenderObject2D for TextureTest {
 
     fn get_name(&self) -> String {
         "TEXTURE TEST".to_string()
+    }
+    
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }

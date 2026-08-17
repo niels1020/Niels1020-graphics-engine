@@ -5,7 +5,7 @@ use wgpu_game_engine::{
         game_window::{GameInfo, InputHandler},
     },
     render::{
-        render_2d::{self, camera::Camera2D, layer::RenderLayer2D},
+        render_2d::{self, camera::Camera2D, layer::RenderLayer2D, render_objects::text::Text},
         render_layers::layer_as_type_mut,
     },
     start_engine,
@@ -87,6 +87,15 @@ impl InputHandler for Input {
         );
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         layer1.add_child(render_2d::render_objects::test::TextureTest::new());
+        layer1.add_child(
+            Text::new(
+                include_bytes!("../../assets/font/0xProtoNerdFont-Regular.ttf"),
+                "0xProto Nerd Font".to_string(),
+                "Hello, world! ".to_string(),
+                20.0,
+                (255, 255, 255, 255),
+            )
+        );
         game_info.tree.root = vec![layer1];
     }
 

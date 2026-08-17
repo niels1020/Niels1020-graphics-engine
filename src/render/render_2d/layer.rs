@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use wgpu::{
     BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
     PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue, RenderPass, RenderPipeline,
@@ -25,14 +27,23 @@ pub struct RenderLayer2D {
     number_of_children_changed: bool,
     atlas_bind: Option<BindGroup>,
 
+    atlas_rebuilt: bool,
     atlas_texture: AtlasTexture,
     pub camera: Camera2D,
 }
 
 pub trait RenderObject2D {
     fn have_vertices_changed(&mut self) -> bool;
-    fn get_vertices(&mut self, atlas: &mut AtlasTexture) -> Vec<Vertex>;
+    ///gets called when have_vertices_changed returns true or when the atlas has been rebuild
+    fn get_vertices(&mut self, atlas: &mut AtlasTexture, render_res: [f32; 2]) -> Vec<Vertex>;
     fn get_name(&self) -> String;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+pub fn object2_d_as_type_mut<T: RenderObject2D + 'static>(
+    object2d: &mut Box<dyn RenderObject2D>,
+) -> Option<&mut T> {
+    object2d.as_any_mut().downcast_mut::<T>()
 }
 
 impl RenderLayer for RenderLayer2D {
@@ -66,10 +77,12 @@ impl RenderLayer for RenderLayer2D {
             }
         }
 
-        if buffer_need_update {
+        if buffer_need_update || self.atlas_rebuilt {
             let mut vertices = vec![];
             for i in self.to_render.iter_mut() {
-                vertices.extend(i.get_vertices(&mut self.atlas_texture));
+                vertices.extend(
+                    i.get_vertices(&mut self.atlas_texture, self.camera.data.render_resolution),
+                );
             }
 
             if vertices.is_empty() {
@@ -89,8 +102,8 @@ impl RenderLayer for RenderLayer2D {
             self.vertices_len = vertices.len();
         }
 
-        let atlas_rebuilt = self.atlas_texture.build_if_needed(queue, device);
-        if atlas_rebuilt {
+        self.atlas_rebuilt = self.atlas_texture.build_if_needed(queue, device);
+        if self.atlas_rebuilt {
             self.atlas_bind = Some(self.atlas_texture.bind(device));
         }
 
@@ -125,6 +138,7 @@ impl RenderLayer2D {
             atlas_texture: AtlasTexture::new(),
             vertices_len: 0,
             atlas_bind: None,
+            atlas_rebuilt: false,
         })
     }
 

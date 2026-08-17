@@ -63,18 +63,50 @@ impl AtlasTexture {
         self.merged_texture = Some(Texture::from_image(device, queue, &merged_image, None));
     }
 
-    pub fn add_image(&mut self, img: DynamicImage, name: String) {
+    pub fn add_image(&mut self, img: DynamicImage, name: String) -> usize{
         self.need_update = true;
         let id = self.images.len();
         self.images.push(img);
         self.name_id_lookup.insert(name, id);
+        id
     }
 
     pub fn remove_image(&mut self, name: String) -> Result<(), String> {
         self.need_update = true;
         match self.name_id_lookup.remove(&name) {
             Some(id) => {
-                self.images.remove(id);
+                let last_id = self.images.len().saturating_sub(1);
+
+                if id < self.images.len() {
+                    self.images.swap_remove(id);
+                }
+
+                // If the removed slot was not the last one, the image that moved into it
+                // must keep its original name lookup record, and every later ID must be
+                // shifted back by one because the image vector is now compacted.
+                if id != last_id && !self.images.is_empty() {
+                    let swapped_name = self
+                        .name_id_lookup
+                        .iter()
+                        .find_map(|(candidate_name, candidate_id)| {
+                            if *candidate_id == last_id {
+                                Some(candidate_name.clone())
+                            } else {
+                                None
+                            }
+                        });
+
+                    if let Some(swapped_name) = swapped_name {
+                        self.name_id_lookup.insert(swapped_name, id);
+                    }
+
+                    for (_, candidate_id) in self.name_id_lookup.iter_mut() {
+                        if *candidate_id > id {
+                            *candidate_id -= 1;
+                        }
+                    }
+                }
+
                 Ok(())
             }
             None => Err(format!("The image {} doesn't exist in this atlas", name)),

@@ -1,2 +1,4 @@
 TODO: text rendering
+TODO: add something like transforms
+TODO: move test.rs to test_program.rs
 TODO: don't give raw windowevents to the user
