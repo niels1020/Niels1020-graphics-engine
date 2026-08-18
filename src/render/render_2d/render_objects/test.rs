@@ -21,12 +21,12 @@ impl RenderObject2D for VerticesTest {
     fn get_vertices(&mut self, _: &mut RenderLayer2DGlobal) -> Vec<crate::common::Vertex> {
         self.has_updated = true;
         vec![
-            Vertex::new(400.0, 0.0, 0.0, 0.0, 0.0, 0),
-            Vertex::new(400.0, 300.0, 0.0, 0.0, 0.0, 0),
-            Vertex::new(0.0, 300.0, 0.0, 0.0, 0.0, 0),
-            Vertex::new(-400.0, 0.0, 0.0, 0.0, 0.0, 0),
-            Vertex::new(-400.0, -300.0, 0.0, 0.0, 0.0, 0),
-            Vertex::new(0.0, -300.0, 0.0, 0.0, 0.0, 0),
+            Vertex::new(400.0, 0.0, 0.01, 0.0, 0.0, 0),
+            Vertex::new(400.0, 300.0, 0.01, 0.0, 0.0, 0),
+            Vertex::new(0.0, 300.0, 0.01, 0.0, 0.0, 0),
+            Vertex::new(-400.0, 0.0, 0.01, 0.0, 0.0, 0),
+            Vertex::new(-400.0, -300.0, 0.01, 0.0, 0.0, 0),
+            Vertex::new(0.0, -300.0, 0.01, 0.0, 0.0, 0),
         ]
     }
 
@@ -79,12 +79,12 @@ impl RenderObject2D for TextureTest {
         let (top_left, top_right, bottom_left, bottom_right) = rect.bounds();
 
         vec![
-            Vertex::new(-50.0, -50.0, 0.0, bottom_left.0, bottom_left.1, 1),
-            Vertex::new(50.0, -50.0, 0.0, bottom_right.0, bottom_right.1, 1),
-            Vertex::new(-50.0, 50.0, 0.0, top_left.0, top_left.1, 1),
-            Vertex::new(50.0, -50.0, 0.0, bottom_right.0, bottom_right.1, 1),
-            Vertex::new(50.0, 50.0, 0.0, top_right.0, top_right.1, 1),
-            Vertex::new(-50.0, 50.0, 0.0, top_left.0, top_left.1, 1),
+            Vertex::new(-50.0, -50.0, 0.01, bottom_left.0, bottom_left.1, 1),
+            Vertex::new(50.0, -50.0, 0.01, bottom_right.0, bottom_right.1, 1),
+            Vertex::new(-50.0, 50.0, 0.01, top_left.0, top_left.1, 1),
+            Vertex::new(50.0, -50.0, 0.01, bottom_right.0, bottom_right.1, 1),
+            Vertex::new(50.0, 50.0, 0.01, top_right.0, top_right.1, 1),
+            Vertex::new(-50.0, 50.0, 0.01, top_left.0, top_left.1, 1),
         ]
     }
 

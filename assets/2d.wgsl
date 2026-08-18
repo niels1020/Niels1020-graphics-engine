@@ -23,7 +23,11 @@ var<uniform> camera: Camera;
 @vertex
 fn vs_main(model: VertexInput,) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = vec4<f32>((model.position.x - camera.position.x) / (camera.render_resolution.x / 2), (model.position.y - camera.position.y) / (camera.render_resolution.y / 2), model.position.z, 1.0);
+    out.clip_position = vec4<f32>(
+        (model.position.x - camera.position.x) / (camera.render_resolution.x / 2), 
+        (model.position.y - camera.position.y) / (camera.render_resolution.y / 2),
+         (model.position.z * -1.0) + 1.0, 
+         1.0);
     out.tex_coords = model.tex_coords;
     out.type_id = model.type_id;
     return out;
@@ -37,7 +41,7 @@ var s_atlas: sampler;
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var color = vec4(in.clip_position);
+    var color = vec4(0.5);
     if in.type_id == 1 {
         color = textureSample(t_atlas, s_atlas, in.tex_coords);
     }

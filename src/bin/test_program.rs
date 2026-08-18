@@ -87,14 +87,13 @@ impl InputHandler for Input {
         );
         layer1.add_child(render_2d::render_objects::test::VerticesTest::new());
         layer1.add_child(render_2d::render_objects::test::TextureTest::new());
-        layer1.add_child(
-            Text::new(
-                "0xProto Nerd Font".to_string(),
-                "Hello, world! ".to_string(),
-                20.0,
-                (255, 255, 255, 255),
-            )
-        );
+        layer1.add_child(Text::new(
+            "0xProto Nerd Font".to_string(),
+            "Hello, world! ".to_string(),
+            20.0,
+            (255, 255, 255, 255),
+            (0.0, 250.0, 0.5),
+        ));
         game_info.tree.root = vec![layer1];
     }
 

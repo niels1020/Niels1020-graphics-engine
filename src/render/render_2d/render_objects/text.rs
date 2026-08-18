@@ -7,29 +7,33 @@ use crate::{
 };
 
 pub struct Text {
-    have_vertices_changed: bool,
+    pos_changed: bool,
+    text_changed: bool,
     font_name: String,
     text: String,
     color: Color,
     old_image_name: Option<String>,
     scale: f32,
-    vertices: Vec<Vertex>,
+    pos: (f32, f32, f32),
+    glyphs_width: u32,
+    glyphs_height: u32,
 }
 
 impl RenderObject2D for Text {
     fn have_vertices_changed(&mut self) -> bool {
-        self.have_vertices_changed
+        self.text_changed | self.pos_changed
     }
 
     fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<crate::common::Vertex> {
-        if self.have_vertices_changed {
+        if self.text_changed {
             if let Some(old) = self.old_image_name.as_ref() {
                 global
                     .atlas_texture
                     .remove_image(old.clone())
                     .expect("couldn't remove something from atlas that should exist");
             }
-            self.have_vertices_changed = false;
+            self.text_changed = false;
+            self.pos_changed = true;
 
             if self.text.is_empty() {
                 self.old_image_name = None;
@@ -82,10 +86,10 @@ impl RenderObject2D for Text {
                 return vec![];
             }
 
-            let glyphs_width = (max_x - min_x + 1) as u32;
-            let glyphs_height = (max_y - min_y + 1) as u32;
+            self.glyphs_width = (max_x - min_x + 1) as u32;
+            self.glyphs_height = (max_y - min_y + 1) as u32;
 
-            let mut image = RgbaImage::new(glyphs_width, glyphs_height);
+            let mut image = RgbaImage::new(self.glyphs_width, self.glyphs_height);
 
             for (x, y, color) in pixels {
                 let image_x = (x - min_x) as u32;
@@ -95,8 +99,8 @@ impl RenderObject2D for Text {
             }
 
             let name = format!(
-                "{},{},{},{:?}",
-                self.font_name, self.text, self.scale, self.color
+                "{},{},{},{:?}, {:?}",
+                self.font_name, self.text, self.scale, self.color, self.pos
             );
             self.old_image_name = Some(name.clone());
             let _id = global.atlas_texture.add_image(image.into(), name.clone());
@@ -105,60 +109,121 @@ impl RenderObject2D for Text {
                 .get_relative_texture_rect(name)
                 .unwrap()
                 .bounds();
-
-            let half_res = [global.render_res[0] / 2.0, global.render_res[1] / 2.0];
-            self.vertices = vec![
+            let half_width = self.glyphs_width as f32 / 2.0;
+            let half_height = self.glyphs_height as f32 / 2.0;
+            vec![
                 Vertex::new(
-                    0.0 - half_res[0],
-                    0.0 - glyphs_height as f32 + half_res[1],
-                    0.0,
+                    -half_width + self.pos.0,
+                    -half_height - half_height + self.pos.1,
+                    self.pos.2,
                     bottom_left.0,
                     bottom_left.1,
                     1,
                 ),
                 Vertex::new(
-                    glyphs_width as f32 - half_res[0],
-                    0.0 - glyphs_height as f32 + half_res[1],
-                    0.0,
+                    half_width + self.pos.0,
+                    -half_height - half_height + self.pos.1,
+                    self.pos.2,
                     bottom_right.0,
                     bottom_right.1,
                     1,
                 ),
                 Vertex::new(
-                    0.0 - half_res[0],
-                    0.0 + half_res[1],
-                    0.0,
+                    -half_width + self.pos.0,
+                    half_height + self.pos.1,
+                    self.pos.2,
                     top_left.0,
                     top_left.1,
                     1,
                 ),
                 Vertex::new(
-                    glyphs_width as f32 - half_res[0],
-                    0.0 - glyphs_height as f32 + half_res[1],
-                    0.0,
+                    half_width + self.pos.0,
+                    -half_height - half_height + self.pos.1,
+                    self.pos.2,
                     bottom_right.0,
                     bottom_right.1,
                     1,
                 ),
                 Vertex::new(
-                    glyphs_width as f32 - half_res[0],
-                    0.0 + half_res[1],
-                    0.0,
+                    half_width + self.pos.0,
+                    half_height + self.pos.1,
+                    self.pos.2,
                     top_right.0,
                     top_right.1,
                     1,
                 ),
                 Vertex::new(
-                    0.0 - half_res[0],
-                    0.0 + half_res[1],
-                    0.0,
+                    -half_width + self.pos.0,
+                    half_height + self.pos.1,
+                    self.pos.2,
                     top_left.0,
                     top_left.1,
                     1,
                 ),
             ]
+        } else {
+            if self.old_image_name.is_none() {
+                vec![]
+            } else {
+                let (top_left, top_right, bottom_left, bottom_right) = global
+                    .atlas_texture
+                    .get_relative_texture_rect(self.old_image_name.as_ref().unwrap().to_string())
+                    .unwrap()
+                    .bounds();
+                let half_width = self.glyphs_width as f32 / 2.0;
+                let half_height = self.glyphs_height as f32 / 2.0;
+                vec![
+                    Vertex::new(
+                        -half_width + self.pos.0,
+                        -half_height - half_height + self.pos.1,
+                        self.pos.2,
+                        bottom_left.0,
+                        bottom_left.1,
+                        1,
+                    ),
+                    Vertex::new(
+                        half_width + self.pos.0,
+                        -half_height - half_height + self.pos.1,
+                        self.pos.2,
+                        bottom_right.0,
+                        bottom_right.1,
+                        1,
+                    ),
+                    Vertex::new(
+                        -half_width + self.pos.0,
+                        half_height + self.pos.1,
+                        self.pos.2,
+                        top_left.0,
+                        top_left.1,
+                        1,
+                    ),
+                    Vertex::new(
+                        half_width + self.pos.0,
+                        -half_height - half_height + self.pos.1,
+                        self.pos.2,
+                        bottom_right.0,
+                        bottom_right.1,
+                        1,
+                    ),
+                    Vertex::new(
+                        half_width + self.pos.0,
+                        half_height + self.pos.1,
+                        self.pos.2,
+                        top_right.0,
+                        top_right.1,
+                        1,
+                    ),
+                    Vertex::new(
+                        -half_width + self.pos.0,
+                        half_height + self.pos.1,
+                        self.pos.2,
+                        top_left.0,
+                        top_left.1,
+                        1,
+                    ),
+                ]
+            }
         }
-        self.vertices.clone()
     }
 
     fn get_name(&self) -> String {
@@ -172,21 +237,30 @@ impl RenderObject2D for Text {
 
 impl Text {
     //the font has to be installed on the users system
-    pub fn new(font_name: String, text: String, scale: f32, color: (u8, u8, u8, u8)) -> Box<Self> {
+    pub fn new(
+        font_name: String,
+        text: String,
+        scale: f32,
+        color: (u8, u8, u8, u8),
+        pos: (f32, f32, f32),
+    ) -> Box<Self> {
         Box::new(Self {
-            have_vertices_changed: true,
+            text_changed: true,
+            pos_changed: true,
             font_name,
             text: text,
             color: Color::rgba(color.0, color.1, color.2, color.3),
             old_image_name: None,
             scale,
-            vertices: vec![],
+            pos,
+            glyphs_width: 1,
+            glyphs_height: 1,
         })
     }
 
     pub fn set_text(&mut self, text: String) {
         self.text = text;
-        self.have_vertices_changed = true;
+        self.text_changed = true;
     }
 
     pub fn get_text(self) -> String {
@@ -195,7 +269,7 @@ impl Text {
 
     pub fn set_colour(&mut self, color: (u8, u8, u8, u8)) {
         self.color = Color::rgba(color.0, color.1, color.2, color.3);
-        self.have_vertices_changed = true;
+        self.text_changed = true;
     }
 
     pub fn get_colour(self) -> (u8, u8, u8, u8) {
@@ -204,10 +278,19 @@ impl Text {
 
     pub fn scale(&mut self, scale: f32) {
         self.scale = scale;
-        self.have_vertices_changed = true;
+        self.text_changed = true;
     }
 
     pub fn get_scale(self) -> f32 {
         self.scale
+    }
+
+    pub fn set_position(&mut self, pos: (f32, f32, f32)) {
+        self.pos_changed = true;
+        self.pos = pos
+    }
+
+    pub fn get_position(self) -> (f32, f32, f32) {
+        self.pos
     }
 }

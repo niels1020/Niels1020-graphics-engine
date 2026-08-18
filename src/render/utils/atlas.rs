@@ -56,7 +56,7 @@ impl AtlasTexture {
                     .copy_from(img, top_left[0] as u32, top_left[1] as u32)
                     .unwrap();
             }
-            merged_image
+            merged_image.into()
         };
 
         //uploading as texture
@@ -207,20 +207,42 @@ impl AtlasTexture {
     }
 
     fn make_psoitions_relative(&mut self) {
+        let atlas_width = self.size.0.max(1) as f32;
+        let atlas_height = self.size.1.max(1) as f32;
+
         self.relative_positions = self
             .positions
             .iter()
-            .map(|r| Rect {
-                top_left: [
-                    r.top_left[0] / self.size.0 as f32,
-                    r.top_left[1] / self.size.1 as f32,
-                ],
-                bottom_right: [
-                    r.bottom_right[0] / self.size.0 as f32,
-                    r.bottom_right[1] / self.size.1 as f32,
-                ],
+            .map(|r| {
+                let left = (r.top_left[0] + 0.5) / atlas_width;
+                let right = (r.bottom_right[0] - 0.5) / atlas_width;
+                let top = (r.top_left[1] + 0.5) / atlas_height;
+                let bottom = (r.bottom_right[1] - 0.5) / atlas_height;
+
+                Rect {
+                    top_left: [left, top],
+                    bottom_right: [right, bottom],
+                }
             })
-            .collect()
+            .collect();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AtlasTexture;
+    use image::DynamicImage;
+
+    #[test]
+    fn atlas_uvs_are_inset_from_texel_edges() {
+        let mut atlas = AtlasTexture::new();
+        atlas.add_image(DynamicImage::new_rgba8(4, 2), "a".to_string());
+        atlas.add_image(DynamicImage::new_rgba8(2, 2), "b".to_string());
+
+        let rect_a = atlas.get_relative_texture_rect("a".to_string()).unwrap();
+
+        assert!((rect_a.top_left[0] - (0.5 / 6.0)).abs() < 0.0001);
+        assert!((rect_a.bottom_right[0] - (3.5 / 6.0)).abs() < 0.0001);
     }
 }
 
