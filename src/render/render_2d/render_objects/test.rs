@@ -1,9 +1,6 @@
 use crate::{
     common::Vertex,
-    render::{
-        utils::atlas::AtlasTexture,
-        render_2d::layer::RenderObject2D,
-    },
+    render::render_2d::layer::{RenderLayer2DGlobal, RenderObject2D},
 };
 
 pub struct VerticesTest {
@@ -21,7 +18,7 @@ impl RenderObject2D for VerticesTest {
         !self.has_updated
     }
 
-    fn get_vertices(&mut self, _: &mut AtlasTexture, _: [f32;2]) -> Vec<crate::common::Vertex> {
+    fn get_vertices(&mut self, _: &mut RenderLayer2DGlobal) -> Vec<crate::common::Vertex> {
         self.has_updated = true;
         vec![
             Vertex::new(400.0, 0.0, 0.0, 0.0, 0.0, 0),
@@ -36,7 +33,7 @@ impl RenderObject2D for VerticesTest {
     fn get_name(&self) -> String {
         "VERTICES TEST".to_string()
     }
-    
+
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
@@ -61,10 +58,10 @@ impl RenderObject2D for TextureTest {
         !self.has_updated
     }
 
-    fn get_vertices(&mut self, atlas: &mut AtlasTexture, _: [f32;2]) -> Vec<Vertex> {
+    fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<Vertex> {
         if !self.image_added {
             self.image_added = true;
-            atlas.add_image(
+            global.atlas_texture.add_image(
                 image::load_from_memory(include_bytes!(
                     "./../../../../assets/test_textures/profiel.png"
                 ))
@@ -75,7 +72,10 @@ impl RenderObject2D for TextureTest {
 
         self.has_updated = true;
 
-        let rect = atlas.get_relative_texture_rect("profiel".to_string()).unwrap();
+        let rect = global
+            .atlas_texture
+            .get_relative_texture_rect("profiel".to_string())
+            .unwrap();
         let (top_left, top_right, bottom_left, bottom_right) = rect.bounds();
 
         vec![
@@ -91,7 +91,7 @@ impl RenderObject2D for TextureTest {
     fn get_name(&self) -> String {
         "TEXTURE TEST".to_string()
     }
-    
+
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }

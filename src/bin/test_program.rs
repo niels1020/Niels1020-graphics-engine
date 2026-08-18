@@ -89,7 +89,6 @@ impl InputHandler for Input {
         layer1.add_child(render_2d::render_objects::test::TextureTest::new());
         layer1.add_child(
             Text::new(
-                include_bytes!("../../assets/font/0xProtoNerdFont-Regular.ttf"),
                 "0xProto Nerd Font".to_string(),
                 "Hello, world! ".to_string(),
                 20.0,

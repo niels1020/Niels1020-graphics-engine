@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use cosmic_text::{FontSystem, SwashCache};
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
-    Queue, RenderPass, TextureUsages, TextureViewDescriptor,
+    Queue, RenderPass, Surface, TextureUsages, TextureViewDescriptor,
     wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration},
 };
 use winit::{
@@ -13,18 +14,15 @@ use winit::{
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
     logic::game_window::{GameInfo, SceneTree},
-    render::utils::texture::Texture,
+    render::utils::{global::RendererGlobal, texture::Texture},
 };
 
 pub struct Renderer {
-    queue: Queue,
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    config: wgpu::SurfaceConfiguration,
+    global: RendererGlobal,
     is_surface_configured: bool,
     pub window: Arc<Window>,
-    depth_texture: Texture,
     window_res: [u32; 2],
+    surface: Surface<'static>,
 }
 
 impl Renderer {
@@ -96,14 +94,18 @@ impl Renderer {
         surface.configure(&device, &config);
 
         Self {
-            depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
             window: window,
-            queue,
-            surface,
-            device,
-            config,
+            global: RendererGlobal {
+                depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
+                device,
+                config,
+                queue,
+                font_system: FontSystem::new(),
+                text_swash_cache: SwashCache::new(),
+            },
             is_surface_configured: true,
             window_res: [size.width, size.height],
+            surface,
         }
     }
 
@@ -117,11 +119,12 @@ impl Renderer {
                 .texture
                 .create_view(&TextureViewDescriptor::default());
 
-            let mut encoder = self
-                .device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("wgpu_game_engine render encoder"),
-                });
+            let mut encoder =
+                self.global
+                    .device
+                    .create_command_encoder(&CommandEncoderDescriptor {
+                        label: Some("wgpu_game_engine render encoder"),
+                    });
 
             //render pass
             {
@@ -138,7 +141,7 @@ impl Renderer {
                             depth_slice: None,
                         })],
                         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &self.depth_texture.view,
+                            view: &self.global.depth_texture.view,
                             depth_ops: Some(wgpu::Operations {
                                 load: wgpu::LoadOp::Clear(DEPTH_CLEAR_VALUE),
                                 store: wgpu::StoreOp::Store,
@@ -154,32 +157,30 @@ impl Renderer {
             }
 
             // submit will accept anything that implements IntoIter
-            self.queue.submit(std::iter::once(encoder.finish()));
-            self.queue.present(output);
+            self.global.queue.submit(std::iter::once(encoder.finish()));
+            self.global.queue.present(output);
         }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
-            self.config.width = width;
-            self.config.height = height;
-            self.surface.configure(&self.device, &self.config);
+            self.global.config.width = width;
+            self.global.config.height = height;
+            self.surface
+                .configure(&self.global.device, &self.global.config);
             self.is_surface_configured = true;
-            self.depth_texture =
-                Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
+            self.global.depth_texture = Texture::create_depth_texture(
+                &self.global.device,
+                &self.global.config,
+                "depth_texture",
+            );
             self.window_res = [width, height];
         }
     }
 
     pub fn render_tree(&mut self, tree: &mut SceneTree, render_pass: &mut RenderPass) {
         for object in tree.root.iter_mut() {
-            object.render(
-                &self.device,
-                &self.config,
-                &self.queue,
-                &self.depth_texture,
-                render_pass,
-            );
+            object.render(&mut self.global, render_pass);
         }
     }
 }

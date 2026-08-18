@@ -1,13 +1,15 @@
+use std::arch::global_asm;
+
 use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, SwashCache};
 use image::{Rgba, RgbaImage};
 
-use crate::{common::Vertex, render::render_2d::layer::RenderObject2D};
+use crate::{
+    common::Vertex,
+    render::render_2d::layer::{RenderLayer2DGlobal, RenderObject2D},
+};
 
 pub struct Text {
     have_vertices_changed: bool,
-    font_system: FontSystem, //TODO: make global
-    cache: SwashCache,       //TODO: make global
-    buffer: Buffer,
     font_name: String,
     text: String,
     color: Color,
@@ -21,14 +23,11 @@ impl RenderObject2D for Text {
         self.have_vertices_changed
     }
 
-    fn get_vertices(
-        &mut self,
-        atlas: &mut crate::render::utils::atlas::AtlasTexture,
-        render_resolution: [f32; 2],
-    ) -> Vec<crate::common::Vertex> {
+    fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<crate::common::Vertex> {
         if self.have_vertices_changed {
             if let Some(old) = self.old_image_name.as_ref() {
-                atlas
+                global
+                    .atlas_texture
                     .remove_image(old.clone())
                     .expect("couldn't remove something from atlas that should exist");
             }
@@ -40,10 +39,12 @@ impl RenderObject2D for Text {
             }
             //render to an image
 
-            let mut buffer = self.buffer.borrow_with(&mut self.font_system);
+            let mut buffer = Buffer::new(
+                &mut global.renderer_global.font_system,
+                Metrics::new(self.scale, self.scale * 1.2),
+            );
             let attrs = Attrs::new().family(cosmic_text::Family::Name(&self.font_name));
 
-            buffer.set_metrics(Metrics::new(self.scale, self.scale * 1.2));
             buffer.set_text(&self.text, &attrs, cosmic_text::Shaping::Advanced, None);
 
             let mut min_x = i32::MAX;
@@ -53,26 +54,31 @@ impl RenderObject2D for Text {
 
             let mut pixels = Vec::new();
 
-            buffer.draw(&mut self.cache, self.color, |x, y, w, h, color| {
-                // Ignore completely transparent pixels.
-                if color.a() == 0 {
-                    return;
-                }
-
-                for py in 0..h {
-                    for px in 0..w {
-                        let pixel_x = x + px as i32;
-                        let pixel_y = y + py as i32;
-
-                        min_x = min_x.min(pixel_x);
-                        min_y = min_y.min(pixel_y);
-                        max_x = max_x.max(pixel_x);
-                        max_y = max_y.max(pixel_y);
-
-                        pixels.push((pixel_x, pixel_y, color));
+            buffer.draw(
+                &mut global.renderer_global.font_system,
+                &mut global.renderer_global.text_swash_cache,
+                self.color,
+                |x, y, w, h, color| {
+                    // Ignore completely transparent pixels.
+                    if color.a() == 0 {
+                        return;
                     }
-                }
-            });
+
+                    for py in 0..h {
+                        for px in 0..w {
+                            let pixel_x = x + px as i32;
+                            let pixel_y = y + py as i32;
+
+                            min_x = min_x.min(pixel_x);
+                            min_y = min_y.min(pixel_y);
+                            max_x = max_x.max(pixel_x);
+                            max_y = max_y.max(pixel_y);
+
+                            pixels.push((pixel_x, pixel_y, color));
+                        }
+                    }
+                },
+            );
 
             if pixels.is_empty() {
                 return vec![];
@@ -95,11 +101,14 @@ impl RenderObject2D for Text {
                 self.font_name, self.text, self.scale, self.color
             );
             self.old_image_name = Some(name.clone());
-            let _id = atlas.add_image(image.into(), name.clone());
-            let (top_left, top_right, bottom_left, bottom_right) =
-                atlas.get_relative_texture_rect(name).unwrap().bounds();
+            let _id = global.atlas_texture.add_image(image.into(), name.clone());
+            let (top_left, top_right, bottom_left, bottom_right) = global
+                .atlas_texture
+                .get_relative_texture_rect(name)
+                .unwrap()
+                .bounds();
 
-            let half_res = [render_resolution[0] / 2.0, render_resolution[1] / 2.0];
+            let half_res = [global.render_res[0] / 2.0, global.render_res[1] / 2.0];
             self.vertices = vec![
                 Vertex::new(
                     0.0 - half_res[0],
@@ -164,20 +173,10 @@ impl RenderObject2D for Text {
 }
 
 impl Text {
-    pub fn new(
-        font_data: &'static [u8],
-        font_name: String,
-        text: String,
-        scale: f32,
-        color: (u8, u8, u8, u8),
-    ) -> Box<Self> {
-        let mut font_system = FontSystem::new();
-        font_system.db_mut().load_font_data(font_data.to_vec());
+    //the font has to be installed on the users system
+    pub fn new(font_name: String, text: String, scale: f32, color: (u8, u8, u8, u8)) -> Box<Self> {
         Box::new(Self {
-            buffer: Buffer::new(&mut font_system, Metrics::new(14.0, 20.0)),
-            cache: SwashCache::new(),
             have_vertices_changed: true,
-            font_system,
             font_name,
             text: text,
             color: Color::rgba(color.0, color.1, color.2, color.3),

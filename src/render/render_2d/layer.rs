@@ -2,7 +2,7 @@ use std::any::Any;
 
 use wgpu::{
     BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
-    PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue, RenderPass, RenderPipeline,
+    PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass, RenderPipeline,
     RenderPipelineDescriptor, ShaderModuleDescriptor, SurfaceConfiguration, VertexState,
     util::{BufferInitDescriptor, DeviceExt},
 };
@@ -12,7 +12,7 @@ use crate::{
     render::{
         render_2d::camera::Camera2D,
         render_layers::RenderLayer,
-        utils::{atlas::AtlasTexture, texture::Texture},
+        utils::{atlas::AtlasTexture, global::RendererGlobal, texture::Texture},
     },
 };
 
@@ -27,15 +27,15 @@ pub struct RenderLayer2D {
     number_of_children_changed: bool,
     atlas_bind: Option<BindGroup>,
 
-    atlas_rebuilt: bool,
     atlas_texture: AtlasTexture,
+    atlas_rebuilt: bool,
     pub camera: Camera2D,
 }
 
 pub trait RenderObject2D {
     fn have_vertices_changed(&mut self) -> bool;
-    ///gets called when have_vertices_changed returns true or when the atlas has been rebuild
-    fn get_vertices(&mut self, atlas: &mut AtlasTexture, render_res: [f32; 2]) -> Vec<Vertex>;
+    ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
+    fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<Vertex>;
     fn get_name(&self) -> String;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -47,26 +47,19 @@ pub fn object2_d_as_type_mut<T: RenderObject2D + 'static>(
 }
 
 impl RenderLayer for RenderLayer2D {
-    fn render(
-        &mut self,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-        queue: &Queue,
-        _depth_texture: &Texture,
-        render_pass: &mut RenderPass,
-    ) {
-        self.camera.update(device, queue);
+    fn render(&mut self, global: &mut RendererGlobal, render_pass: &mut RenderPass) {
+        self.camera.update(&global.device, &global.queue);
 
         if self.render_pipeline.is_none() {
             self.render_pipeline = Some(create_pipeline(
-                device,
+                &global.device,
                 self.shader.clone(),
-                config,
+                &global.config,
                 &self.name,
                 self.camera.layout.as_ref().unwrap(),
-                &self.atlas_texture.create_layout(device),
+                &self.atlas_texture.create_layout(&global.device),
             ));
-            self.atlas_texture.build(queue, device);
+            self.atlas_texture.build(&global.queue, &global.device);
         }
 
         let mut buffer_need_update = self.vertex_buffer.is_none() | self.number_of_children_changed;
@@ -80,19 +73,21 @@ impl RenderLayer for RenderLayer2D {
         if buffer_need_update || self.atlas_rebuilt {
             let mut vertices = vec![];
             for i in self.to_render.iter_mut() {
-                vertices.extend(
-                    i.get_vertices(&mut self.atlas_texture, self.camera.data.render_resolution),
-                );
+                vertices.extend(i.get_vertices(&mut RenderLayer2DGlobal {
+                    renderer_global: global,
+                    render_res: self.camera.data.render_resolution,
+                    atlas_texture: &mut self.atlas_texture,
+                }));
             }
 
             if vertices.is_empty() {
                 self.vertex_buffer = None;
             } else if self.vertex_buffer.is_none() {
-                self.vertex_buffer = Some(device.create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
+                self.vertex_buffer = Some(global.device.create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
                         contents: bytemuck::cast_slice(&vertices),
                         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, /*COPY_DST means that you can upload to it later*/}));
             } else {
-                queue.write_buffer(
+                global.queue.write_buffer(
                     self.vertex_buffer.as_ref().unwrap(),
                     0,
                     bytemuck::cast_slice(&vertices),
@@ -102,9 +97,11 @@ impl RenderLayer for RenderLayer2D {
             self.vertices_len = vertices.len();
         }
 
-        self.atlas_rebuilt = self.atlas_texture.build_if_needed(queue, device);
+        self.atlas_rebuilt = self
+            .atlas_texture
+            .build_if_needed(&global.queue, &global.device);
         if self.atlas_rebuilt {
-            self.atlas_bind = Some(self.atlas_texture.bind(device));
+            self.atlas_bind = Some(self.atlas_texture.bind(&global.device));
         }
 
         if self.vertex_buffer.is_some() {
@@ -227,4 +224,10 @@ fn create_pipeline(
     };
 
     device.create_render_pipeline(&desc)
+}
+
+pub struct RenderLayer2DGlobal<'a> {
+    pub renderer_global: &'a mut  RendererGlobal,
+    pub render_res: [f32; 2],
+    pub atlas_texture: &'a mut AtlasTexture,
 }

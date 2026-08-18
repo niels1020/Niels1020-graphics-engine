@@ -2,15 +2,12 @@ use std::any::Any;
 
 use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration};
 
-use crate::render::utils::texture::Texture;
+use crate::render::utils::{global::RendererGlobal, texture::Texture};
 
 pub trait RenderLayer {
     fn render(
         &mut self,
-        device: &Device,
-        config: &SurfaceConfiguration,
-        queue: &Queue,
-        depth_texture: &Texture,
+        global: &mut RendererGlobal,
         render_pass: &mut RenderPass,
     );
 
