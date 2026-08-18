@@ -1,6 +1,4 @@
-use std::arch::global_asm;
-
-use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, SwashCache};
+use cosmic_text::{Attrs, Buffer, Color, Metrics};
 use image::{Rgba, RgbaImage};
 
 use crate::{

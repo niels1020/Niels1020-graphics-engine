@@ -1,8 +1,8 @@
 use std::any::Any;
 
-use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration};
+use wgpu::RenderPass;
 
-use crate::render::utils::{global::RendererGlobal, texture::Texture};
+use crate::render::utils::global::RendererGlobal;
 
 pub trait RenderLayer {
     fn render(

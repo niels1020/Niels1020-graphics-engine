@@ -3,7 +3,7 @@ use std::sync::Arc;
 use cosmic_text::{FontSystem, SwashCache};
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
-    Queue, RenderPass, Surface, TextureUsages, TextureViewDescriptor,
+    RenderPass, Surface, TextureUsages, TextureViewDescriptor,
     wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration},
 };
 use winit::{
