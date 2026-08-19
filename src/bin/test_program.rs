@@ -1,4 +1,4 @@
-use wgpu_game_engine::{
+use niels1020_graphics_engine::{
     include_wgsl,
     logic::{
         commands::Commands,
@@ -108,7 +108,7 @@ impl Input {
     }
 }
 
-use wgpu_game_engine::{
+use niels1020_graphics_engine::{
     common::Vertex,
     render::render_2d::layer::{RenderLayer2DGlobal, RenderObject2D},
 };
