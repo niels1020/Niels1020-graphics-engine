@@ -65,7 +65,7 @@ fn create_bind_group_layout(device: &Device) -> BindGroupLayout {
     device.create_bind_group_layout(&BindGroupLayoutDescriptor {
         label: Some("a Camera2D bindgroup layout"),
         entries: &[BindGroupLayoutEntry {
-            binding: CAMERA_BINDING,
+            binding: 0,
             visibility: ShaderStages::VERTEX,
             ty: BindingType::Buffer {
                 ty: wgpu::BufferBindingType::Uniform,

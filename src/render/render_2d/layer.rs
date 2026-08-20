@@ -8,7 +8,7 @@ use wgpu::{
 };
 
 use crate::{
-    common::{CAMERA_BINDING, TEXTURE_BINDING, Vertex},
+    common::{ATLAS_BINDING, CAMERA_BINDING, Vertex},
     render::{
         render_2d::camera::Camera2D,
         render_layers::RenderLayer,
@@ -40,7 +40,7 @@ pub trait RenderObject2D {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-pub fn object2_d_as_type_mut<T: RenderObject2D + 'static>(
+pub fn object2d_as_type_mut<T: RenderObject2D + 'static>(
     object2d: &mut Box<dyn RenderObject2D>,
 ) -> Option<&mut T> {
     object2d.as_any_mut().downcast_mut::<T>()
@@ -60,6 +60,7 @@ impl RenderLayer for RenderLayer2D {
                 &self.atlas_texture.create_layout(&global.device),
             ));
             self.atlas_texture.build(&global.queue, &global.device);
+            self.atlas_bind = Some(self.atlas_texture.bind(&global.device))
         }
 
         let mut buffer_need_update = self.vertex_buffer.is_none() | self.number_of_children_changed;
@@ -108,7 +109,7 @@ impl RenderLayer for RenderLayer2D {
             render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
             render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
             render_pass.set_bind_group(CAMERA_BINDING, self.camera.bind.as_ref().unwrap(), &[]);
-            render_pass.set_bind_group(TEXTURE_BINDING, self.atlas_bind.as_ref().unwrap(), &[]);
+            render_pass.set_bind_group(ATLAS_BINDING, self.atlas_bind.as_ref().unwrap(), &[]);
             render_pass.draw(0..self.vertices_len as u32, 0..1);
         }
     }
@@ -227,7 +228,7 @@ fn create_pipeline(
 }
 
 pub struct RenderLayer2DGlobal<'a> {
-    pub renderer_global: &'a mut  RendererGlobal,
+    pub renderer_global: &'a mut RendererGlobal,
     pub render_res: [f32; 2],
     pub atlas_texture: &'a mut AtlasTexture,
 }

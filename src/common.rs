@@ -12,9 +12,6 @@ pub const CLEAR_COLOR: wgpu::Color = wgpu::Color {
     a: 1.0,
 };
 
-/// Camera movement speed (units per frame) delta is in microseconds (sorry)
-pub const CAMERA_SPEED: f32 = 0.00005;
-
 /// Depth value for clearing - set to 1.0 (far plane) since we use reverse-Z
 pub const DEPTH_CLEAR_VALUE: f32 = 1.0;
 
@@ -22,10 +19,10 @@ pub const DEPTH_CLEAR_VALUE: f32 = 1.0;
 pub const MAX_FRAME_LATENCY: u32 = 2;
 
 /// Default camera position (units: 1 up, 2 back from origin)
-pub const DEFAULT_CAMERA_EYE: (f32, f32, f32) = (0.0, 1.0, 2.0);
+pub const DEFAULT_CAMERA_EYE: (f32, f32, f32) = (0.0, 0.0, 0.0);
 
 /// Default point the camera looks at
-pub const DEFAULT_CAMERA_TARGET: (f32, f32, f32) = (0.0, 0.0, 0.0);
+pub const DEFAULT_CAMERA_TARGET: (f32, f32, f32) = (1.0, 0.0, 0.0);
 
 /// Camera field of view in degrees
 pub const CAMERA_FOV: f32 = 90.0;
@@ -37,7 +34,8 @@ pub const CAMERA_NEAR_PLANE: f32 = 0.1;
 pub const CAMERA_FAR_PLANE: f32 = 1000.0; //maybe to far
 
 pub const CAMERA_BINDING: u32 = 0;
-pub const TEXTURE_BINDING: u32 = 1;
+pub const ATLAS_BINDING: u32 = 1;
+pub const TRANSFORM_BINDING: u32 = 2;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -90,7 +88,7 @@ impl Vertex {
     }
 
     /// Create a new vertex with the given position and texture coordinates
-    pub fn new(x: f32, y: f32, z: f32, t_x: f32, t_y: f32, type_id: u32) -> Self {
+    pub const fn new(x: f32, y: f32, z: f32, t_x: f32, t_y: f32, type_id: u32) -> Self {
         Self {
             position: [x, y, z],
             tex_coords: [t_x, t_y],
@@ -98,3 +96,49 @@ impl Vertex {
         }
     }
 }
+
+/// Vertices for a unit cube centered at the origin.
+pub const CUBE_VERTICES: &[Vertex] = &[
+    // Front
+    Vertex::new(-0.5, -0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, -0.5, 0.5, 1.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, -0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, 0.5, 0.5, 0.0, 0.0, 0),
+    // Back
+    Vertex::new(0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(-0.5, -0.5, -0.5, 1.0, 1.0, 0),
+    Vertex::new(-0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(-0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(0.5, 0.5, -0.5, 0.0, 0.0, 0),
+    // Right
+    Vertex::new(0.5, -0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, -0.5, -0.5, 1.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(0.5, -0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(0.5, 0.5, 0.5, 0.0, 0.0, 0),
+    // Left
+    Vertex::new(-0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(-0.5, -0.5, 0.5, 1.0, 1.0, 0),
+    Vertex::new(-0.5, 0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(-0.5, 0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, 0.5, -0.5, 0.0, 0.0, 0),
+    // Top
+    Vertex::new(-0.5, 0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, 0.5, 1.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, 0.5, 0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, 0.5, -0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, 0.5, -0.5, 0.0, 0.0, 0),
+    // Bottom
+    Vertex::new(-0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, -0.5, -0.5, 1.0, 1.0, 0),
+    Vertex::new(0.5, -0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, -0.5, -0.5, 0.0, 1.0, 0),
+    Vertex::new(0.5, -0.5, 0.5, 1.0, 0.0, 0),
+    Vertex::new(-0.5, -0.5, 0.5, 0.0, 0.0, 0),
+];
