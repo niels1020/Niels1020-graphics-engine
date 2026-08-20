@@ -4,8 +4,6 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::common::CAMERA_BINDING;
-
 pub struct Camera2D {
     pub(crate) layout: Option<BindGroupLayout>,
     pub(crate) bind: Option<BindGroup>,

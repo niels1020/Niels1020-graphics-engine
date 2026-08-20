@@ -11,7 +11,7 @@ use wgpu::{
 };
 
 use crate::{
-    common::{ATLAS_BINDING, CAMERA_BINDING, CUBE_VERTICES, TRANSFORM_BINDING, Vertex},
+    common::Vertex,
     render::{
         render_3d::camera::{Camera3D, Camera3DUniform},
         render_layers::RenderLayer,
@@ -40,12 +40,13 @@ pub struct RenderLayer3D {
 }
 
 pub trait RenderObject3D {
-    fn have_vertices_changed(&mut self) -> bool;
+    fn have_vertices_changed(&self) -> bool;
     ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
     fn get_vertices(&mut self, global: &mut RenderLayer3DGlobal) -> Vec<Vertex>;
     fn get_name(&self) -> String;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn get_transform(&self) -> Transform;
+    fn has_transform_changed(&self) -> bool;
 }
 
 #[repr(C)]
@@ -109,50 +110,79 @@ impl RenderLayer for RenderLayer3D {
             self.atlas_bind = Some(self.atlas_texture.bind(&global.device))
         }
 
-        self.atlas_rebuilt = self
-            .atlas_texture
-            .build_if_needed(&global.queue, &global.device);
-        if self.atlas_rebuilt {
-            self.atlas_bind = Some(self.atlas_texture.bind(&global.device));
-        }
+        render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
+        render_pass.set_bind_group(0, self.camera_bind.as_ref().unwrap(), &[]);
 
-        //FIXME: more then one thing
-
-        {
-            render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
-            render_pass.set_bind_group(0, self.camera_bind.as_ref().unwrap(), &[]);
-            render_pass.set_bind_group(1, self.atlas_bind.as_ref().unwrap(), &[]);
-
-            let vertex_buffer = &global.device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Vertex beffer for an object"),
-                contents: cast_slice(&CUBE_VERTICES),
-                usage: BufferUsages::VERTEX,
-            });
-
-            let transform_buffer =
-                &global
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("Transform Buffer"),
-                        contents: bytemuck::cast_slice(&[Transform::new(
-                            [2.0, 0.0, 0.0],
-                            [45.0; 3],
-                        )]),
-                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, //COPY_DST means that you can upload to it later
+        for container in self.to_render.iter_mut() {
+            if container.vertex_buffer.is_none() || container.object().have_vertices_changed() {
+                let vertices = container
+                    .object_mut()
+                    .get_vertices(&mut RenderLayer3DGlobal {
+                        renderer_global: global,
+                        atlas_texture: &mut self.atlas_texture,
                     });
 
-            let transform_bind = &global.device.create_bind_group(&BindGroupDescriptor {
-                label: Some("transform bind"),
-                layout: self.transform_layout.as_ref().unwrap(),
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: transform_buffer.as_entire_binding(),
-                }],
-            });
+                container.vertices_len = vertices.len();
 
-            render_pass.set_bind_group(2, transform_bind, &[]);
-            render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-            render_pass.draw(0..CUBE_VERTICES.len() as u32, 0..1);
+                if container.vertices_len == 0 {
+                    continue;
+                }
+
+                container.vertex_buffer =
+                    Some(global.device.create_buffer_init(&BufferInitDescriptor {
+                        label: Some("Vertex beffer for an object"),
+                        contents: cast_slice(&vertices),
+                        usage: BufferUsages::VERTEX,
+                    }));
+            }
+
+            if container.transform_buffer.is_none() {
+                container.transform_buffer = Some(global.device.create_buffer_init(
+                    &wgpu::util::BufferInitDescriptor {
+                        label: Some("A Transform Buffer"),
+                        contents: bytemuck::cast_slice(&[container.object_mut().get_transform()]),
+                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, //COPY_DST means that you can upload to it later
+                    },
+                ));
+            }
+
+            if container.transform_bind.is_none() {
+                container.transform_bind = Some(
+                    global.device.create_bind_group(&BindGroupDescriptor {
+                        label: Some("transform bind"),
+                        layout: self.transform_layout.as_ref().unwrap(),
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: container
+                                .transform_buffer
+                                .as_ref()
+                                .unwrap()
+                                .as_entire_binding(),
+                        }],
+                    }),
+                )
+            }
+
+            if container.object().has_transform_changed() {
+                let transform = container.object_mut().get_transform();
+                global.queue.write_buffer(
+                    container.transform_buffer.as_ref().unwrap(),
+                    0,
+                    bytemuck::cast_slice(&[transform]),
+                );
+            }
+
+            self.atlas_rebuilt = self
+                .atlas_texture
+                .build_if_needed(&global.queue, &global.device);
+            if self.atlas_rebuilt {
+                self.atlas_bind = Some(self.atlas_texture.bind(&global.device));
+            }
+
+            render_pass.set_bind_group(1, self.atlas_bind.as_ref().unwrap(), &[]);
+            render_pass.set_bind_group(2, container.transform_bind.as_ref().unwrap(), &[]);
+            render_pass.set_vertex_buffer(0, container.vertex_buffer.as_ref().unwrap().slice(..));
+            render_pass.draw(0..container.vertices_len as u32, 0..1);
         }
     }
 
@@ -167,12 +197,7 @@ impl RenderLayer3D {
         name: String,
         camera: Camera3D,
     ) -> Box<Self> {
-        let mut atlas_texture = AtlasTexture::new();
-        //FIXME: added for testing
-        atlas_texture.add_image(
-            image::load_from_memory(include_bytes!("../../../assets/test/profiel.png")).unwrap(),
-            "profiel".to_string(),
-        );
+        let atlas_texture = AtlasTexture::new();
 
         Box::new(Self {
             to_render: vec![],
@@ -357,6 +382,7 @@ pub struct RenderObject3DContainer {
     transform_bind: Option<BindGroup>,
     vertex_buffer: Option<Buffer>,
     transform_buffer: Option<Buffer>,
+    vertices_len: usize,
 }
 
 impl From<Box<dyn RenderObject3D + Send>> for RenderObject3DContainer {
@@ -366,6 +392,7 @@ impl From<Box<dyn RenderObject3D + Send>> for RenderObject3DContainer {
             transform_bind: None,
             vertex_buffer: None,
             transform_buffer: None,
+            vertices_len: 0,
         }
     }
 }

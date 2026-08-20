@@ -15,7 +15,7 @@ pub struct Rect {
 
 pub struct AtlasTexture {
     need_update: bool,
-    pub merged_texture: Option<Texture>,
+    pub(crate) merged_texture: Option<Texture>,
     positions: Vec<Rect>, //array whitch contains the area each texture holds in the merged texture
     relative_positions: Vec<Rect>,
     size: (u32, u32),
@@ -225,6 +225,10 @@ impl AtlasTexture {
                 }
             })
             .collect();
+    }
+
+    pub fn has_image(&self, name: String) -> bool {
+        self.name_id_lookup.contains_key(&name)
     }
 }
 
