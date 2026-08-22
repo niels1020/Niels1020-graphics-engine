@@ -6,10 +6,7 @@ use wgpu::{
     RenderPass, Surface, TextureUsages, TextureViewDescriptor,
     wgt::{CommandEncoderDescriptor, DeviceDescriptor, SurfaceConfiguration},
 };
-use winit::{
-    event_loop::ActiveEventLoop,
-    window::{Window, WindowAttributes},
-};
+use winit::window::{Window, WindowId};
 
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
@@ -18,17 +15,15 @@ use crate::{
 };
 
 pub struct Renderer {
-    global: RendererGlobal,
+    pub(crate) global: RendererGlobal,
     is_surface_configured: bool,
-    pub window: Arc<Window>,
-    window_res: [u32; 2],
+    pub(crate) window_res: [u32; 2],
     surface: Surface<'static>,
+    pub(crate) window_id: WindowId
 }
 
 impl Renderer {
-    pub async fn new(event_loop: &ActiveEventLoop, window_attributes: &WindowAttributes) -> Self {
-        let window = Arc::new(event_loop.create_window(window_attributes.clone()).unwrap());
-
+    pub async fn new(window: Arc<Window>) -> Self {
         let size = window.inner_size();
 
         let instance = Instance::new(InstanceDescriptor {
@@ -93,20 +88,20 @@ impl Renderer {
 
         surface.configure(&device, &config);
 
-        Self {
-            window: window,
-            global: RendererGlobal {
-                depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
-                device,
-                config,
-                queue,
-                font_system: FontSystem::new(),
-                text_swash_cache: SwashCache::new(),
-            },
-            is_surface_configured: true,
-            window_res: [size.width, size.height],
-            surface,
-        }
+            Self {
+                global: RendererGlobal {
+                    depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
+                    device,
+                    config,
+                    queue,
+                    font_system: FontSystem::new(),
+                    text_swash_cache: SwashCache::new(),
+                },
+                is_surface_configured: true,
+                window_res: [size.width, size.height],
+                surface,
+                window_id: window.id(),
+            }
     }
 
     pub fn render(&mut self, game_info: &mut GameInfo) {

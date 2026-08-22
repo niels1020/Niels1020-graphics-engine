@@ -5,7 +5,7 @@ use std::{
 };
 
 use winit::{
-    event::{DeviceEvent, DeviceId, WindowEvent}, window::WindowId,
+    event::{DeviceEvent, DeviceId, WindowEvent}, window::{Window, WindowId},
 };
 
 use crate::logic::{
@@ -23,11 +23,11 @@ pub(crate) struct SharedInfo {
 }
 
 pub(crate) fn start_logic_thread(
-    window_id: WindowId,
+    window: Arc<Window>,
     input_handler: Box<dyn InputHandler + Send>,
 ) -> Arc<Mutex<SharedInfo>> {
     let shared_info = Arc::new(Mutex::new(SharedInfo {
-        game_info: GameInfo::new(window_id),
+        game_info: GameInfo::new(window),
         commands: Commands::new(),
         window_events: vec![],
         device_events: vec![],
@@ -43,6 +43,8 @@ pub(crate) fn start_logic_thread(
             let mut commands = Commands::new();
             input_handler.start(&mut commands, &mut shared.game_info);
             shared.commands.append(&mut commands);
+
+            shared.game_info.window.request_redraw();
         }
 
         let mut last_update = Instant::now();
@@ -70,7 +72,7 @@ pub(crate) fn start_logic_thread(
                     let mut commands = Commands::new();
                     let (event, id) = shared.window_events.remove(0);
 
-                    if id == shared.game_info.window_id {
+                    if id == shared.game_info.window.id() {
                         input_handler.window_event(&mut commands, &mut shared.game_info, event);
                     } else {
                         input_handler.other_window_event(

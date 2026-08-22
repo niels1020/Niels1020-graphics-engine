@@ -52,7 +52,7 @@ pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Engine, comma
             game.windows.retain(|window| {
                 let mut shared = window.shared_info.as_ref().unwrap().lock().unwrap();
                 shared.should_despawn = true;
-                shared.game_info.window_id != window_id
+                shared.game_info.window.id() != window_id
             });
             if game.windows.is_empty() {
                 println!("No windows open: Exiting");

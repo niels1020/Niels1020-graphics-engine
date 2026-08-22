@@ -36,7 +36,7 @@ impl InputHandler for Input {
     ) {
         match event {
             WindowEvent::CloseRequested => {
-                commands.close_window(game_info.window_id);
+                commands.close_window(game_info.window.id());
             }
             WindowEvent::KeyboardInput {
                 event:

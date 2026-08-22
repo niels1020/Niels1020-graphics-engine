@@ -4,7 +4,9 @@ use std::{
 };
 
 use winit::{
-    event::{DeviceEvent, DeviceId, WindowEvent}, event_loop::ActiveEventLoop, window::{WindowAttributes, WindowId},
+    event::{DeviceEvent, DeviceId, WindowEvent},
+    event_loop::ActiveEventLoop,
+    window::{Window, WindowAttributes, WindowId},
 };
 
 use crate::{
@@ -50,14 +52,16 @@ impl GameWindow {
     pub fn start(&mut self, _commands: &mut Commands, event_loop: &ActiveEventLoop) {
         let init_only = self.init_only.take().unwrap();
 
-        let info = pollster::block_on(Renderer::new(&event_loop, &init_only.window_attributes));
-        self.renderer = Some(info);
-        self.renderer.as_ref().unwrap().window.request_redraw();
-
-        let shared_info = start_logic_thread(
-            self.renderer.as_ref().unwrap().window.id(),
-            self.input_handler.take().unwrap(),
+        let window = Arc::new(
+            event_loop
+                .create_window(init_only.window_attributes.clone())
+                .unwrap(),
         );
+
+        let renderer = pollster::block_on(Renderer::new(window.clone()));
+        self.renderer = Some(renderer);
+
+        let shared_info = start_logic_thread(window, self.input_handler.take().unwrap());
 
         self.shared_info = Some(shared_info);
     }
@@ -69,12 +73,12 @@ impl GameWindow {
         event: WindowEvent,
     ) {
         if let Some(renderer) = self.renderer.as_mut() {
-            if renderer.window.id() == window_id {
+            if renderer.window_id == window_id {
                 match event {
                     WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
-                        {
                             let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+                        {
                             let now = Instant::now();
                             if (now - self.last_render)
                                 >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
@@ -86,7 +90,7 @@ impl GameWindow {
                                 commands.append(&mut shared.commands);
                             }
                         }
-                        renderer.window.request_redraw();
+                        shared.game_info.window.request_redraw();
                     }
                     _ => {}
                 }
@@ -134,24 +138,23 @@ pub trait InputHandler {
         _commands: &mut Commands,
         _game_info: &mut GameInfo,
         _event: DeviceEvent,
-        _device_id: DeviceId
+        _device_id: DeviceId,
     ) {
-
     }
 }
 
 pub struct GameInfo {
     pub tree: SceneTree,
-    pub window_id: WindowId,
     pub refresh_rate: u64,
+    pub window: Arc<Window>,
 }
 
 impl GameInfo {
-    pub(crate) fn new(window_id: WindowId) -> Self {
+    pub(crate) fn new(window: Arc<Window>) -> Self {
         Self {
             tree: SceneTree::new(),
-            window_id,
             refresh_rate: 144,
+            window,
         }
     }
 }
