@@ -131,12 +131,12 @@ pub trait InputHandler {
 
     fn device_event(
         &mut self,
-        commands: &mut Commands,
-        game_info: &mut GameInfo,
-        event: DeviceEvent,
-        device_id: DeviceId
+        _commands: &mut Commands,
+        _game_info: &mut GameInfo,
+        _event: DeviceEvent,
+        _device_id: DeviceId
     ) {
-        
+
     }
 }
 
