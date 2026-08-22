@@ -130,7 +130,7 @@ impl RenderLayer2D {
 
         let shader = match shader {
             Some(s) => s,
-            None => include_wgsl!("../../../assets/test/3d.wgsl"),
+            None => include_wgsl!("../../../assets/test/2d.wgsl"),
         };
         
         Box::new(Self {
