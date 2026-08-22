@@ -72,37 +72,48 @@ impl GameWindow {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        match event {
+            WindowEvent::CloseRequested => {
+                commands.close_window(window_id);
+                return;
+            }
+            WindowEvent::Destroyed => {
+                commands.close_window(window_id);
+                return;
+            }
+            _ => {}
+        }
+
         if let Some(renderer) = self.renderer.as_mut() {
             if renderer.window_id == window_id {
                 match event {
                     WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
                         let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+                        let now = Instant::now();
+                        if (now - self.last_render)
+                            >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
                         {
-                            let now = Instant::now();
-                            if (now - self.last_render)
-                                >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
-                            {
-                                self.last_render = now;
-                                renderer.render(&mut shared.game_info);
+                            self.last_render = now;
+                            renderer.render(&mut shared.game_info);
 
-                                //append main command buffer very frame
-                                commands.append(&mut shared.commands);
-                            }
+                            //append main command buffer very frame
+                            commands.append(&mut shared.commands);
                         }
-                        shared.game_info.window.request_redraw();
                     }
                     _ => {}
                 }
             }
         }
-        let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
-        shared.window_events.push((event, window_id));
+        if let Ok(mut shared) = self.shared_info.as_ref().unwrap().try_lock() {
+            shared.window_events.push((event, window_id));
+        }
     }
 
     pub fn device_event(&mut self, event: DeviceEvent, device_id: DeviceId) {
-        let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
-        shared.device_events.push((event, device_id));
+        if let Ok(mut shared) = self.shared_info.as_ref().unwrap().try_lock() {
+            shared.device_events.push((event, device_id));
+        }
     }
 }
 

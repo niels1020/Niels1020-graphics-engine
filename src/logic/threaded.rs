@@ -43,27 +43,33 @@ pub(crate) fn start_logic_thread(
             let mut commands = Commands::new();
             input_handler.start(&mut commands, &mut shared.game_info);
             shared.commands.append(&mut commands);
-
-            shared.game_info.window.request_redraw();
         }
 
         let mut last_update = Instant::now();
+        let mut last_redraw = Instant::now();
         loop {
-            //frame update
-            {
+            let should_redraw = {
                 let mut shared = shared_info_thread.lock().unwrap();
                 let mut commands = Commands::new();
 
                 let now = Instant::now();
-
                 let delta = (now - last_update).as_secs_f64();
 
                 input_handler.update(&mut commands, &mut shared.game_info, delta);
-
                 last_update = now;
 
+                let should_redraw = (now - last_redraw)
+                    >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64);
+                if should_redraw {
+                    last_redraw = now;
+                    shared.game_info.window.request_redraw();
+                }
+
                 shared.commands.append(&mut commands);
-            }
+                should_redraw
+            };
+
+            let _ = should_redraw;
 
             //window event handling
             {
