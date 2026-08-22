@@ -1,7 +1,7 @@
 use std::{
     sync::{Arc, Mutex},
     thread,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use winit::{
@@ -109,6 +109,8 @@ pub(crate) fn start_logic_thread(
                     shared.commands.append(&mut commands);
                 }
             }
+
+            thread::sleep(Duration::from_millis(1));
         }
     });
 

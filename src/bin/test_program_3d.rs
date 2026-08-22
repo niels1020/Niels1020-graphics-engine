@@ -94,6 +94,8 @@ impl InputHandler for Input {
         }));
 
         game_info.tree.root = vec![layer1];
+
+        game_info.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).unwrap();
     }
 
     fn exit(&mut self, _game_info: &mut GameInfo) {}

@@ -77,7 +77,7 @@ impl GameWindow {
                 match event {
                     WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
-                            let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+                        let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
                         {
                             let now = Instant::now();
                             if (now - self.last_render)
