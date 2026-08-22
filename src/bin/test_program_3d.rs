@@ -3,7 +3,6 @@ use niels1020_graphics_engine::{
         CAMERA_FAR_PLANE, CAMERA_FOV, CAMERA_NEAR_PLANE, CUBE_VERTICES, DEFAULT_CAMERA_EYE,
         DEFAULT_CAMERA_TARGET,
     },
-    include_wgsl,
     logic::{
         commands::Commands,
         game_window::{GameInfo, InputHandler},
@@ -73,7 +72,7 @@ impl InputHandler for Input {
 
     fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer3D::new(
-            include_wgsl!("../../assets/test/3d.wgsl"),
+            None,
             "test 3D".to_string(),
             Camera3D {
                 eye: DEFAULT_CAMERA_EYE.into(),

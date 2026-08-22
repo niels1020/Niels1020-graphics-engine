@@ -2,12 +2,7 @@ use std::any::Any;
 
 use bytemuck::{NoUninit, cast_slice};
 use wgpu::{
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState,
-    PipelineCompilationOptions, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass,
-    RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderStages,
-    SurfaceConfiguration, VertexState,
-    util::{BufferInitDescriptor, DeviceExt},
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState, PipelineCompilationOptions, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass, RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderStages, SurfaceConfiguration, VertexState, include_wgsl, util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
@@ -192,12 +187,18 @@ impl RenderLayer for RenderLayer3D {
 }
 
 impl RenderLayer3D {
+    ///if shader == None it wil use a default shader
     pub fn new(
-        shader: ShaderModuleDescriptor<'static>,
+        shader: Option<ShaderModuleDescriptor<'static>>,
         name: String,
         camera: Camera3D,
     ) -> Box<Self> {
         let atlas_texture = AtlasTexture::new();
+
+        let shader = match shader {
+            Some(s) => s,
+            None => include_wgsl!("../../../assets/test/3d.wgsl"),
+        };
 
         Box::new(Self {
             to_render: vec![],

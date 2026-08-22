@@ -1,5 +1,4 @@
 use niels1020_graphics_engine::{
-    include_wgsl,
     logic::{
         commands::Commands,
         game_window::{GameInfo, InputHandler},
@@ -81,7 +80,7 @@ impl InputHandler for Input {
 
     fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer2D::new(
-            include_wgsl!("../../assets/test/2d.wgsl"),
+            None,
             "Test 2D".to_string(),
             Camera2D::new([800.0, 600.0]),
         );

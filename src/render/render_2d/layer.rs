@@ -4,6 +4,7 @@ use wgpu::{
     BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
     PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass, RenderPipeline,
     RenderPipelineDescriptor, ShaderModuleDescriptor, SurfaceConfiguration, VertexState,
+    include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -120,11 +121,18 @@ impl RenderLayer for RenderLayer2D {
 }
 
 impl RenderLayer2D {
+    ///if shader == None it wil use a default shader
     pub fn new(
-        shader: ShaderModuleDescriptor<'static>,
+        shader: Option<ShaderModuleDescriptor<'static>>,
         name: String,
         camera: Camera2D,
     ) -> Box<Self> {
+
+        let shader = match shader {
+            Some(s) => s,
+            None => include_wgsl!("../../../assets/test/3d.wgsl"),
+        };
+        
         Box::new(Self {
             to_render: vec![],
             render_pipeline: None,
