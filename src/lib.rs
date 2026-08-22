@@ -8,7 +8,7 @@ pub use wgpu::include_wgsl;
 pub use winit;
 pub use image::load_from_memory;
 
-use crate::logic::{game::Game, game_window::InputHandler};
+use crate::logic::{engine::Engine, game_window::InputHandler};
 
 pub fn start_engine(
     main_input_handler: Box<dyn InputHandler + Send>,
@@ -16,7 +16,7 @@ pub fn start_engine(
 ) {
     let event_loop = EventLoop::new().unwrap();
 
-    let mut app = Game::new(main_input_handler, window_attributes);
+    let mut app = Engine::new(main_input_handler, window_attributes);
 
     event_loop.run_app(&mut app).unwrap();
 }

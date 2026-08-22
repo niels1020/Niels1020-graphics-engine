@@ -4,7 +4,7 @@ use winit::{
 };
 
 use crate::logic::{
-    game::Game,
+    engine::Engine,
     game_window::{GameWindow, InputHandler},
 };
 
@@ -46,7 +46,7 @@ impl Commands {
     }
 }
 
-pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Game, command: Command) {
+pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Engine, command: Command) {
     match command {
         Command::CloseWindow(window_id) => {
             game.windows.retain(|window| {

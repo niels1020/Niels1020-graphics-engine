@@ -4,9 +4,7 @@ use std::{
 };
 
 use winit::{
-    event::WindowEvent,
-    event_loop::ActiveEventLoop,
-    window::{WindowAttributes, WindowId},
+    event::{DeviceEvent, DeviceId, WindowEvent}, event_loop::ActiveEventLoop, window::{WindowAttributes, WindowId},
 };
 
 use crate::{
@@ -83,6 +81,9 @@ impl GameWindow {
                             {
                                 self.last_render = now;
                                 renderer.render(&mut shared.game_info);
+
+                                //append main command buffer very frame
+                                commands.append(&mut shared.commands);
                             }
                         }
                         renderer.window.request_redraw();
@@ -92,8 +93,12 @@ impl GameWindow {
             }
         }
         let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
-        shared.events.push((event, window_id));
-        commands.append(&mut shared.commands);
+        shared.window_events.push((event, window_id));
+    }
+
+    pub fn device_event(&mut self, event: DeviceEvent, device_id: DeviceId) {
+        let mut shared = self.shared_info.as_ref().unwrap().lock().unwrap();
+        shared.device_events.push((event, device_id));
     }
 }
 
@@ -123,6 +128,16 @@ pub trait InputHandler {
     fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
 
     fn exit(&mut self, game_info: &mut GameInfo);
+
+    fn device_event(
+        &mut self,
+        commands: &mut Commands,
+        game_info: &mut GameInfo,
+        event: DeviceEvent,
+        device_id: DeviceId
+    ) {
+        
+    }
 }
 
 pub struct GameInfo {

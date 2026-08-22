@@ -4,7 +4,9 @@ use std::{
     time::Instant,
 };
 
-use winit::{event::WindowEvent, window::WindowId};
+use winit::{
+    event::{DeviceEvent, DeviceId, WindowEvent}, window::WindowId,
+};
 
 use crate::logic::{
     commands::Commands,
@@ -14,7 +16,8 @@ use crate::logic::{
 pub(crate) struct SharedInfo {
     pub game_info: GameInfo,
     pub commands: Commands,
-    pub events: Vec<(WindowEvent, WindowId)>,
+    pub window_events: Vec<(WindowEvent, WindowId)>,
+    pub device_events: Vec<(DeviceEvent, DeviceId)>,
     pub should_despawn: bool,
     pub refresh_rate: u64,
 }
@@ -26,7 +29,8 @@ pub(crate) fn start_logic_thread(
     let shared_info = Arc::new(Mutex::new(SharedInfo {
         game_info: GameInfo::new(window_id),
         commands: Commands::new(),
-        events: vec![],
+        window_events: vec![],
+        device_events: vec![],
         should_despawn: false,
         refresh_rate: 144,
     }));
@@ -59,12 +63,12 @@ pub(crate) fn start_logic_thread(
                 shared.commands.append(&mut commands);
             }
 
-            //event handling
+            //window event handling
             {
                 let mut shared = shared_info_thread.lock().unwrap();
-                while !shared.events.is_empty() {
+                while !shared.window_events.is_empty() {
                     let mut commands = Commands::new();
-                    let (event, id) = shared.events.remove(0);
+                    let (event, id) = shared.window_events.remove(0);
 
                     if id == shared.game_info.window_id {
                         input_handler.window_event(&mut commands, &mut shared.game_info, event);
@@ -81,6 +85,18 @@ pub(crate) fn start_logic_thread(
                 }
             }
 
+            //device event handling
+            {
+                let mut shared = shared_info_thread.lock().unwrap();
+                while !shared.device_events.is_empty() {
+                    let mut commands = Commands::new();
+                    let (event, id) = shared.device_events.remove(0);
+
+                    input_handler.device_event(&mut commands, &mut shared.game_info, event, id);
+
+                    shared.commands.append(&mut commands);
+                }
+            }
 
             //check if it should despawn
             {

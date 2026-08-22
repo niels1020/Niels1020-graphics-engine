@@ -7,12 +7,12 @@ use crate::logic::{
     game_window::{GameWindow, InputHandler},
 };
 
-pub struct Game {
+pub struct Engine {
     pub(crate) windows: Vec<GameWindow>,
     pub(crate) commands: Commands,
 }
 
-impl Game {
+impl Engine {
     pub fn new(
         main_input_handler: Box<dyn InputHandler + Send>,
         window_attributes: WindowAttributes,
@@ -31,7 +31,7 @@ impl Game {
     }
 }
 
-impl ApplicationHandler for Game {
+impl ApplicationHandler for Engine {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let len = self.windows.len();
         self.windows
@@ -49,6 +49,18 @@ impl ApplicationHandler for Game {
     ) {
         for window in self.windows.iter_mut() {
             window.window_event(&mut self.commands, window_id, event.clone());
+        }
+        self.run_commands(event_loop);
+    }
+
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        for window in self.windows.iter_mut() {
+            window.device_event(event.clone(), device_id);
         }
         self.run_commands(event_loop);
     }
