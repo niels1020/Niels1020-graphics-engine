@@ -1,3 +1,7 @@
+use crate::common::{
+    CAMERA_FAR_PLANE, CAMERA_FOV, CAMERA_NEAR_PLANE, DEFAULT_CAMERA_EYE, DEFAULT_CAMERA_TARGET,
+};
+
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_cols(
     cgmath::Vector4::new(1.0, 0.0, 0.0, 0.0),
@@ -16,10 +20,26 @@ pub struct Camera3D {
     pub zfar: f32,
 }
 
+impl Default for Camera3D {
+    fn default() -> Self {
+        Self {
+            eye: DEFAULT_CAMERA_EYE.into(),
+            // Point camera at the origin
+            target: DEFAULT_CAMERA_TARGET.into(),
+            // Define which direction is "up"
+            up: cgmath::Vector3::unit_y(),
+            aspect: 16.0 / 9.0,
+            fovy: CAMERA_FOV,
+            znear: CAMERA_NEAR_PLANE,
+            zfar: CAMERA_FAR_PLANE,
+        }
+    }
+}
+
 // We need this for Rust to store our data correctly for the shaders
 #[repr(C)]
 // This is so we can store this in a buffer
-#[derive(Debug, Copy, Clone,bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Camera3DUniform {
     // We can't use cgmath with bytemuck directly, so we'll have
     // to convert the Matrix4 into a 4x4 f32 array
