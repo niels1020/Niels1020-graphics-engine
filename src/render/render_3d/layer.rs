@@ -2,7 +2,13 @@ use std::any::Any;
 
 use bytemuck::{NoUninit, cast_slice};
 use wgpu::{
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState, PipelineCompilationOptions, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass, RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderStages, SurfaceConfiguration, VertexState, hal::auxil::db::qualcomm, include_wgsl, util::{BufferInitDescriptor, DeviceExt}, wgc::device::queue,
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState,
+    PipelineCompilationOptions, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass,
+    RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderStages,
+    SurfaceConfiguration, VertexState,
+    include_wgsl,
+    util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
@@ -106,7 +112,11 @@ impl RenderLayer for RenderLayer3D {
         }
 
         self.camera_uniform.update_view_proj(&self.camera);
-        global.queue.write_buffer(self.camera_buffer.as_ref().unwrap(), 0, cast_slice(&[self.camera_uniform]));
+        global.queue.write_buffer(
+            self.camera_buffer.as_ref().unwrap(),
+            0,
+            cast_slice(&[self.camera_uniform]),
+        );
 
         render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
         render_pass.set_bind_group(0, self.camera_bind.as_ref().unwrap(), &[]);
