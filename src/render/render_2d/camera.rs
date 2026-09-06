@@ -4,7 +4,8 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
 };
 
-pub struct Camera2D {
+#[derive(Clone, Debug)]
+pub struct Camera2D{
     pub(crate) layout: Option<BindGroupLayout>,
     pub(crate) bind: Option<BindGroup>,
     buffer: Option<Buffer>,

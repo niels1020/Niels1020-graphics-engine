@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
 use bytemuck::{NoUninit, cast_slice};
 use wgpu::{
@@ -6,8 +6,7 @@ use wgpu::{
     BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState,
     PipelineCompilationOptions, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass,
     RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderStages,
-    SurfaceConfiguration, VertexState,
-    include_wgsl,
+    SurfaceConfiguration, VertexState, include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -20,7 +19,7 @@ use crate::{
     },
 };
 
-#[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub struct RenderLayer3D {
     to_render: Vec<RenderObject3DContainer>,
     render_pipeline: Option<RenderPipeline>,
@@ -40,7 +39,7 @@ pub struct RenderLayer3D {
     transform_layout: Option<BindGroupLayout>,
 }
 
-pub trait RenderObject3D {
+pub trait RenderObject3D: Send + Debug{
     fn have_vertices_changed(&self) -> bool;
     ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
     fn get_vertices(&mut self, global: &mut RenderLayer3DGlobal) -> Vec<Vertex>;
@@ -48,6 +47,13 @@ pub trait RenderObject3D {
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn get_transform(&self) -> Transform;
     fn has_transform_changed(&self) -> bool;
+    fn clone_box(&self) -> Box<dyn RenderObject3D>;
+}
+
+impl Clone for Box<dyn RenderObject3D> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
 }
 
 #[repr(C)]
@@ -197,6 +203,10 @@ impl RenderLayer for RenderLayer3D {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+    
+    fn clone_box(&self) -> Box<dyn RenderLayer> {
+        Box::new(self.clone())
+    }
 }
 
 impl RenderLayer3D {
@@ -230,7 +240,7 @@ impl RenderLayer3D {
         })
     }
 
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject3D + Send>> {
+    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject3D>> {
         match self
             .to_render
             .iter()
@@ -241,7 +251,7 @@ impl RenderLayer3D {
         }
     }
 
-    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject3D + Send>> {
+    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject3D>> {
         match self
             .to_render
             .iter_mut()
@@ -391,8 +401,9 @@ pub struct RenderLayer3DGlobal<'a> {
     pub atlas_texture: &'a mut AtlasTexture,
 }
 
+#[derive(Clone, Debug)]
 pub struct RenderObject3DContainer {
-    object: Box<dyn RenderObject3D + Send>,
+    object: Box<dyn RenderObject3D>,
     transform_bind: Option<BindGroup>,
     vertex_buffer: Option<Buffer>,
     transform_buffer: Option<Buffer>,
@@ -412,11 +423,11 @@ impl From<Box<dyn RenderObject3D + Send>> for RenderObject3DContainer {
 }
 
 impl RenderObject3DContainer {
-    pub fn object_mut(&mut self) -> &mut Box<dyn RenderObject3D + Send> {
+    pub fn object_mut(&mut self) -> &mut Box<dyn RenderObject3D> {
         &mut self.object
     }
 
-    pub fn object(&self) -> &Box<dyn RenderObject3D + Send> {
+    pub fn object(&self) -> &Box<dyn RenderObject3D> {
         &self.object
     }
 }

@@ -94,11 +94,9 @@ impl InputHandler for Input {
         }));
 
         game_info.tree.root = vec![layer1];
-
-        game_info.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).unwrap();
     }
 
-    fn exit(&mut self, _game_info: &mut GameInfo) {}
+    fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {}
 }
 
 impl Input {
@@ -109,6 +107,7 @@ impl Input {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct CubeTest {
     have_vertices_changed: bool,
     transform: Transform,
@@ -148,5 +147,9 @@ impl RenderObject3D for CubeTest {
 
     fn has_transform_changed(&self) -> bool {
         self.has_transform_changed
+    }
+    
+    fn clone_box(&self) -> Box<dyn RenderObject3D> {
+        Box::new(self.clone())
     }
 }

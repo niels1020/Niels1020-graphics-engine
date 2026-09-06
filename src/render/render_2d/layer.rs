@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
 use wgpu::{
     BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
@@ -17,9 +17,9 @@ use crate::{
     },
 };
 
-#[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub struct RenderLayer2D {
-    to_render: Vec<Box<dyn RenderObject2D + Send>>,
+    to_render: Vec<Box<dyn RenderObject2D>>,
     render_pipeline: Option<RenderPipeline>,
     shader: ShaderModuleDescriptor<'static>,
     name: String,
@@ -33,12 +33,19 @@ pub struct RenderLayer2D {
     pub camera: Camera2D,
 }
 
-pub trait RenderObject2D {
+pub trait RenderObject2D: Send + Debug{
     fn have_vertices_changed(&mut self) -> bool;
     ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
     fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<Vertex>;
     fn get_name(&self) -> String;
     fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn clone_box(&self) -> Box<dyn RenderObject2D>;
+}
+
+impl Clone for Box<dyn RenderObject2D> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
 }
 
 pub fn object2d_as_type_mut<T: RenderObject2D + 'static>(
@@ -118,6 +125,10 @@ impl RenderLayer for RenderLayer2D {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+    
+    fn clone_box(&self) -> Box<dyn RenderLayer> {
+        Box::new(self.clone())
+    }
 }
 
 impl RenderLayer2D {
@@ -148,11 +159,11 @@ impl RenderLayer2D {
         })
     }
 
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D + Send>> {
+    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D>> {
         self.to_render.iter().find(|a| a.get_name() == name)
     }
 
-    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D + Send>> {
+    pub fn get_mut_child(&mut self, name: String) -> Option<&mut Box<dyn RenderObject2D>> {
         self.to_render.iter_mut().find(|a| a.get_name() == name)
     }
 

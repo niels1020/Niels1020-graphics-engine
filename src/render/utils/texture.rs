@@ -1,6 +1,6 @@
 use image::{GenericImageView, ImageError};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,

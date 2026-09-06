@@ -8,11 +8,13 @@ use wgpu::{
 
 use crate::render::utils::texture::Texture;
 
+#[derive(Clone, Debug)]
 pub struct Rect {
     pub top_left: [f32; 2],
     pub bottom_right: [f32; 2],
 }
 
+#[derive(Clone, Debug)]
 pub struct AtlasTexture {
     need_update: bool,
     pub(crate) merged_texture: Option<Texture>,

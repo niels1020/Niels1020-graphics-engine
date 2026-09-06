@@ -5,120 +5,158 @@ use std::{
 };
 
 use winit::{
-    event::{DeviceEvent, DeviceId, WindowEvent}, window::{Window, WindowId},
+    event::{DeviceEvent, DeviceId, WindowEvent},
+    window::{Window, WindowId},
 };
 
 use crate::logic::{
     commands::Commands,
-    game_window::{GameInfo, InputHandler},
+    game_window::{GameInfo, InputHandler, SceneTree},
 };
 
-pub(crate) struct SharedInfo {
-    pub game_info: GameInfo,
-    pub commands: Commands,
+///put data here for loggic thread to proccess
+pub(crate) struct LogicInfo {
     pub window_events: Vec<(WindowEvent, WindowId)>,
     pub device_events: Vec<(DeviceEvent, DeviceId)>,
     pub should_despawn: bool,
-    pub refresh_rate: u64,
 }
+pub(crate) type SharedLogicInfo = Arc<Mutex<LogicInfo>>;
+
+///some data gets copied to the render thread later
+pub(crate) struct LocalInfo {
+    pub game_info: GameInfo,
+    pub commands: Commands,
+}
+
+///data gets copied here from localinfo at the end of a logic iteration
+pub(crate) struct RenderInfo {
+    pub scene_tree: SceneTree,
+    pub commands: Commands,
+    pub refresh_rate: usize,
+    pub window_id: WindowId,
+}
+pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
     window: Arc<Window>,
     input_handler: Box<dyn InputHandler + Send>,
-) -> Arc<Mutex<SharedInfo>> {
-    let shared_info = Arc::new(Mutex::new(SharedInfo {
-        game_info: GameInfo::new(window),
+) -> (SharedLogicInfo, SharedRenderInfo) {
+    let shared_render_info = Arc::new(Mutex::new(RenderInfo {
+        scene_tree: SceneTree::new(),
         commands: Commands::new(),
+        refresh_rate: 0,
+        window_id: window.clone().id(),
+    }));
+    let shared_render_info_thread = shared_render_info.clone();
+
+    let shared_logic_info = Arc::new(Mutex::new(LogicInfo {
         window_events: vec![],
         device_events: vec![],
         should_despawn: false,
-        refresh_rate: 144,
     }));
-    let shared_info_thread = shared_info.clone();
+    let shared_logic_info_thread = shared_logic_info.clone();
 
     thread::spawn(move || {
         let mut input_handler = input_handler;
-        {
-            let mut shared = shared_info_thread.lock().unwrap();
-            let mut commands = Commands::new();
-            input_handler.start(&mut commands, &mut shared.game_info);
-            shared.commands.append(&mut commands);
-        }
+
+        let mut local_info = {
+            LocalInfo {
+                game_info: GameInfo::new(window),
+                commands: Commands::new(),
+            }
+        };
+
+        input_handler.start(&mut local_info.commands, &mut local_info.game_info);
 
         let mut last_update = Instant::now();
         let mut last_redraw = Instant::now();
-        loop {
-            let should_redraw = {
-                let mut shared = shared_info_thread.lock().unwrap();
-                let mut commands = Commands::new();
-
+        'game: loop {
+            //render update
+            {
                 let now = Instant::now();
                 let delta = (now - last_update).as_secs_f64();
 
-                input_handler.update(&mut commands, &mut shared.game_info, delta);
+                input_handler.update(&mut local_info.commands, &mut local_info.game_info, delta);
                 last_update = now;
 
                 let should_redraw = (now - last_redraw)
-                    >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64);
+                    >= Duration::from_secs_f64(1.0 / local_info.game_info.refresh_rate as f64);
                 if should_redraw {
                     last_redraw = now;
-                    shared.game_info.window.request_redraw();
+                    local_info.game_info.window.request_redraw();
                 }
+            }
 
-                shared.commands.append(&mut commands);
-                should_redraw
-            };
-
-            let _ = should_redraw;
-
-            //window event handling
+            //event handling
             {
-                let mut shared = shared_info_thread.lock().unwrap();
-                while !shared.window_events.is_empty() {
-                    let mut commands = Commands::new();
-                    let (event, id) = shared.window_events.remove(0);
+                let (mut window_events, mut device_events) = {
+                    let mut shared = shared_logic_info_thread.lock().unwrap();
+                    (
+                        shared
+                            .window_events
+                            .drain(..)
+                            .collect::<Vec<(WindowEvent, WindowId)>>(),
+                        shared
+                            .device_events
+                            .drain(..)
+                            .collect::<Vec<(DeviceEvent, DeviceId)>>(),
+                    )
+                };
 
-                    if id == shared.game_info.window.id() {
-                        input_handler.window_event(&mut commands, &mut shared.game_info, event);
+                //window event handling
+                while !window_events.is_empty() {
+                    let (event, id) = window_events.remove(0);
+
+                    if id == local_info.game_info.window.id() {
+                        input_handler.window_event(
+                            &mut local_info.commands,
+                            &mut local_info.game_info,
+                            event,
+                        );
                     } else {
                         input_handler.other_window_event(
-                            &mut commands,
-                            &mut shared.game_info,
+                            &mut local_info.commands,
+                            &mut local_info.game_info,
                             id,
                             event,
                         );
                     }
-
-                    shared.commands.append(&mut commands);
                 }
-            }
 
-            //device event handling
-            {
-                let mut shared = shared_info_thread.lock().unwrap();
-                while !shared.device_events.is_empty() {
-                    let mut commands = Commands::new();
-                    let (event, id) = shared.device_events.remove(0);
+                //device event handling
+                while !device_events.is_empty() {
+                    let (event, id) = device_events.remove(0);
 
-                    input_handler.device_event(&mut commands, &mut shared.game_info, event, id);
-
-                    shared.commands.append(&mut commands);
+                    input_handler.device_event(
+                        &mut local_info.commands,
+                        &mut local_info.game_info,
+                        event,
+                        id,
+                    );
                 }
             }
 
             //check if it should despawn
             {
-                let mut shared = shared_info_thread.lock().unwrap();
-                if shared.should_despawn {
-                    let mut commands = Commands::new();
-                    input_handler.exit(&mut shared.game_info);
-                    shared.commands.append(&mut commands);
+                if shared_logic_info_thread.lock().unwrap().should_despawn {
+                    input_handler.exit(&mut local_info.commands, &mut local_info.game_info);
+
+                    let mut shared = shared_render_info_thread.lock().unwrap();
+                    shared.commands.append(&mut local_info.commands);
+
+                    break 'game;
                 }
             }
 
-            thread::sleep(Duration::from_millis(1));
+            //clone scene tree and commands to render thread
+            {
+                let mut shared = shared_render_info_thread.lock().unwrap();
+                shared.scene_tree = local_info.game_info.tree.clone();
+                shared.commands.append(&mut local_info.commands);
+                shared.refresh_rate = local_info.game_info.refresh_rate;
+            }
         }
     });
 
-    shared_info
+    (shared_logic_info, shared_render_info)
 }

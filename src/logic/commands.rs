@@ -10,6 +10,7 @@ use crate::logic::{
 
 pub(crate) enum Command {
     CloseWindow(WindowId),
+    ///exits the engine WITHOUT calling exit() on any input handler
     Exit,
     NewWindow(Box<dyn InputHandler + Send>, WindowAttributes),
 }
@@ -50,9 +51,10 @@ pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Engine, comma
     match command {
         Command::CloseWindow(window_id) => {
             game.windows.retain(|window| {
-                let mut shared = window.shared_info.as_ref().unwrap().lock().unwrap();
-                shared.should_despawn = true;
-                shared.game_info.window.id() != window_id
+                let shared_render = window.shared_render_info.as_ref().unwrap().lock().unwrap();
+                let mut shared_logic = window.shared_logic_info.as_ref().unwrap().lock().unwrap();
+                shared_logic.should_despawn = true;
+                shared_render.window_id != window_id
             });
             if game.windows.is_empty() {
                 println!("No windows open: Exiting");

@@ -10,7 +10,7 @@ use winit::window::{Window, WindowId};
 
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
-    logic::game_window::{GameInfo, SceneTree},
+    logic::game_window::SceneTree,
     render::utils::{global::RendererGlobal, texture::Texture},
 };
 
@@ -104,7 +104,7 @@ impl Renderer {
             }
     }
 
-    pub fn render(&mut self, game_info: &mut GameInfo) {
+    pub fn render(&mut self, scene_tree: &mut SceneTree) {
         if !self.is_surface_configured {
             println!("surface not configured");
             return;
@@ -148,7 +148,7 @@ impl Renderer {
                         multiview_mask: None,
                     });
 
-                self.render_tree(&mut game_info.tree, &mut render_pass);
+                self.render_tree(scene_tree, &mut render_pass);
             }
 
             // submit will accept anything that implements IntoIter

@@ -96,7 +96,9 @@ impl InputHandler for Input {
         game_info.tree.root = vec![layer1];
     }
 
-    fn exit(&mut self, _game_info: &mut GameInfo) {}
+    fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {
+        println!("exit has been called");
+    }
 }
 
 impl Input {
@@ -112,6 +114,7 @@ use niels1020_graphics_engine::{
     render::render_2d::layer::{RenderLayer2DGlobal, RenderObject2D},
 };
 
+#[derive(Clone, Debug)]
 pub struct VerticesTest {
     has_updated: bool,
 }
@@ -146,8 +149,13 @@ impl RenderObject2D for VerticesTest {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+    
+    fn clone_box(&self) -> Box<dyn RenderObject2D> {
+        Box::new(self.clone())
+    }
 }
 
+#[derive(Clone, Debug)]
 pub struct TextureTest {
     has_updated: bool,
     image_added: bool,
@@ -200,5 +208,9 @@ impl RenderObject2D for TextureTest {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+    
+    fn clone_box(&self) -> Box<dyn RenderObject2D> {
+        Box::new(self.clone())
     }
 }
