@@ -57,17 +57,18 @@ impl InputHandler for Input {
                 device_id: _,
                 position,
             } => {
-                if let Some(layer) = game_info.tree.root.get_mut(0) {
+                let res_copy = self.resolution;
+                commands.modify_render_layer(game_info.window_id, 0,  move |layer| {
                     match layer_as_type_mut::<RenderLayer2D>(layer) {
                         Some(layer2d) => {
                             layer2d.camera.data.position = [
-                                ((position.x as f32) - (self.resolution[0] / 2.0)) * -1.0,
-                                (position.y as f32) - (self.resolution[1] / 2.0),
+                                ((position.x as f32) - (res_copy[0] / 2.0)) * -1.0,
+                                (position.y as f32) - (res_copy[1] / 2.0),
                             ]
                         }
                         None => {}
                     }
-                }
+                });
             }
             WindowEvent::Resized(new_size) => {
                 self.resolution = [new_size.width as f32, new_size.height as f32]
@@ -78,7 +79,7 @@ impl InputHandler for Input {
 
     fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
-    fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
+    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer2D::new(
             None,
             "Test 2D".to_string(),
@@ -93,7 +94,7 @@ impl InputHandler for Input {
             (255, 255, 255, 255),
             (0.0, 250.0, 0.5),
         ));
-        game_info.tree.root = vec![layer1];
+        commands.add_render_layer(game_info.window_id, layer1);
     }
 
     fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {

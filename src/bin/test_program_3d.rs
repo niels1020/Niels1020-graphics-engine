@@ -70,7 +70,7 @@ impl InputHandler for Input {
 
     fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
-    fn start(&mut self, _commands: &mut Commands, game_info: &mut GameInfo) {
+    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer3D::new(
             None,
             "test 3D".to_string(),
@@ -93,7 +93,7 @@ impl InputHandler for Input {
             transform: Transform::new([2.0, 0.0, 0.0], [30.0; 3]),
         }));
 
-        game_info.tree.root = vec![layer1];
+        commands.add_render_layer(game_info.window_id, layer1);
     }
 
     fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {}
@@ -148,7 +148,7 @@ impl RenderObject3D for CubeTest {
     fn has_transform_changed(&self) -> bool {
         self.has_transform_changed
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderObject3D> {
         Box::new(self.clone())
     }

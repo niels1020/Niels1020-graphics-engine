@@ -11,7 +11,7 @@ use winit::{
 
 use crate::logic::{
     commands::Commands,
-    game_window::{GameInfo, InputHandler, SceneTree},
+    game_window::{GameInfo, InputHandler},
 };
 
 ///put data here for loggic thread to proccess
@@ -30,7 +30,6 @@ pub(crate) struct LocalInfo {
 
 ///data gets copied here from localinfo at the end of a logic iteration
 pub(crate) struct RenderInfo {
-    pub scene_tree: SceneTree,
     pub commands: Commands,
     pub refresh_rate: usize,
     pub window_id: WindowId,
@@ -42,7 +41,6 @@ pub(crate) fn start_logic_thread(
     input_handler: Box<dyn InputHandler + Send>,
 ) -> (SharedLogicInfo, SharedRenderInfo) {
     let shared_render_info = Arc::new(Mutex::new(RenderInfo {
-        scene_tree: SceneTree::new(),
         commands: Commands::new(),
         refresh_rate: 0,
         window_id: window.clone().id(),
@@ -148,7 +146,6 @@ pub(crate) fn start_logic_thread(
             //clone scene tree and commands to render thread
             {
                 let mut shared = shared_render_info_thread.lock().unwrap();
-                shared.scene_tree = local_info.game_info.tree.clone();
                 shared.commands.append(&mut local_info.commands);
                 shared.refresh_rate = local_info.game_info.refresh_rate;
             }

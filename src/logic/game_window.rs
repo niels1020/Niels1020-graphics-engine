@@ -11,8 +11,10 @@ use winit::{
 
 use crate::{
     logic::{
-        commands::Commands, threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
-    }, render::{render_layers::RenderLayer, renderer::Renderer},
+        commands::Commands,
+        threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
+    },
+    render::{render_layers::RenderLayer, renderer::Renderer},
 };
 
 //get removed after init
@@ -27,6 +29,8 @@ pub struct GameWindow {
     init_only: Option<InitOnly>,
     pub(crate) shared_render_info: Option<SharedRenderInfo>,
     pub(crate) shared_logic_info: Option<SharedLogicInfo>,
+    pub(crate) scene_tree: SceneTree,
+    pub(crate) window_id: WindowId,
     last_render: Instant,
 }
 
@@ -47,6 +51,8 @@ impl GameWindow {
             shared_render_info: None,
             shared_logic_info: None,
             last_render: Instant::now(),
+            scene_tree: SceneTree::new(),
+            window_id: WindowId::dummy(),
         }
     }
 
@@ -62,7 +68,10 @@ impl GameWindow {
         let renderer = pollster::block_on(Renderer::new(window.clone()));
         self.renderer = Some(renderer);
 
-        let (shared_logic_info, shared_render_info) = start_logic_thread(window, self.input_handler.take().unwrap());
+        let (shared_logic_info, shared_render_info) =
+            start_logic_thread(window, self.input_handler.take().unwrap());
+
+        self.window_id = shared_render_info.lock().unwrap().window_id;
 
         self.shared_logic_info = Some(shared_logic_info);
         self.shared_render_info = Some(shared_render_info);
@@ -97,14 +106,9 @@ impl GameWindow {
                             >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
                         {
                             self.last_render = now;
-                            renderer.render(&mut shared.scene_tree);
-
-                            //append main command buffer very frame
-                            commands.append(&mut shared.commands);
+                            renderer.render(&mut self.scene_tree);
                         }
-                        else {
-                            println!("rendering skipped");
-                        }
+                        commands.append(&mut shared.commands);
                     }
                     _ => {}
                 }
@@ -128,7 +132,7 @@ impl SceneTree {
     }
 }
 
-pub trait InputHandler {
+pub trait InputHandler: Send {
     fn window_event(
         &mut self,
         commands: &mut Commands,
@@ -160,15 +164,15 @@ pub trait InputHandler {
 }
 
 pub struct GameInfo {
-    pub tree: SceneTree,
     pub window: Arc<Window>,
     pub refresh_rate: usize,
+    pub window_id: WindowId,
 }
 
 impl GameInfo {
     pub(crate) fn new(window: Arc<Window>) -> Self {
         Self {
-            tree: SceneTree::new(),
+            window_id: window.id(),
             window,
             refresh_rate: 144,
         }

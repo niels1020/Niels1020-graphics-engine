@@ -3,16 +3,28 @@ use winit::{
     window::{WindowAttributes, WindowId},
 };
 
-use crate::logic::{
-    engine::Engine,
-    game_window::{GameWindow, InputHandler},
+use crate::{
+    logic::{
+        engine::Engine,
+        game_window::{GameWindow, InputHandler},
+    },
+    render::render_layers::RenderLayer,
 };
 
 pub(crate) enum Command {
     CloseWindow(WindowId),
     ///exits the engine WITHOUT calling exit() on any input handler
     Exit,
-    NewWindow(Box<dyn InputHandler + Send>, WindowAttributes),
+    NewWindow(Box<dyn InputHandler>, WindowAttributes),
+
+    AddRenderLayer(WindowId, Box<dyn RenderLayer>),
+    RemoveRenderLayer(WindowId, usize),
+    //TODO: GetRenderLayerClone(WindowId, usize),
+    ModifyRenderLayer(
+        WindowId,
+        usize,
+        Box<dyn FnOnce(&mut Box<dyn RenderLayer>) + Send>,
+    ),
 }
 
 pub struct Commands {
@@ -30,11 +42,27 @@ impl Commands {
 
     pub fn new_window(
         &mut self,
-        input_handler: Box<dyn InputHandler + Send>,
+        input_handler: Box<dyn InputHandler>,
         window_attributes: WindowAttributes,
     ) {
         self.queue
             .push(Command::NewWindow(input_handler, window_attributes));
+    }
+
+    pub fn add_render_layer(&mut self, window_id: WindowId, layer: Box<dyn RenderLayer>) {
+        self.queue.push(Command::AddRenderLayer(window_id, layer));
+    }
+
+    pub fn remove_render_layer(&mut self, window_id: WindowId, index: usize) {
+        self.queue
+            .push(Command::RemoveRenderLayer(window_id, index));
+    }
+
+    pub fn modify_render_layer<A>(&mut self, window_id: WindowId, index: usize, op: A)
+    where
+        A: FnOnce(&mut Box<dyn RenderLayer>) + Send + 'static,
+    {
+        self.queue.push(Command::ModifyRenderLayer(window_id, index, Box::new(op)));
     }
 
     //leaves other empty
@@ -70,6 +98,23 @@ pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Engine, comma
                 .get_mut(len - 1)
                 .unwrap()
                 .start(&mut game.commands, event_loop);
+        }
+        Command::AddRenderLayer(window_id, render_layer) => {
+            if let Some(game_window) = game.windows.iter_mut().find(|a| a.window_id == window_id) {
+                game_window.scene_tree.root.push(render_layer);
+            };
+        }
+        Command::RemoveRenderLayer(window_id, index) => {
+            if let Some(game_window) = game.windows.iter_mut().find(|a| a.window_id == window_id) {
+                game_window.scene_tree.root.remove(index);
+            };
+        }
+        Command::ModifyRenderLayer(window_id, index, fn_once) => {
+            if let Some(game_window) = game.windows.iter_mut().find(|a| a.window_id == window_id) {
+                if let Some(layer) = game_window.scene_tree.root.get_mut(index) {
+                    fn_once(layer);
+                }
+            };
         }
     }
 }
