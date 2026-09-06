@@ -89,7 +89,7 @@ pub(crate) fn start_logic_thread(
 
             //event handling
             {
-                let (mut window_events, mut device_events) = {
+                let (window_events, device_events) = {
                     let mut shared = shared_logic_info_thread.lock().unwrap();
                     (
                         shared
@@ -104,9 +104,7 @@ pub(crate) fn start_logic_thread(
                 };
 
                 //window event handling
-                while !window_events.is_empty() {
-                    let (event, id) = window_events.remove(0);
-
+                for (event, id) in window_events {
                     if id == local_info.game_info.window.id() {
                         input_handler.window_event(
                             &mut local_info.commands,
@@ -124,8 +122,7 @@ pub(crate) fn start_logic_thread(
                 }
 
                 //device event handling
-                while !device_events.is_empty() {
-                    let (event, id) = device_events.remove(0);
+                for (event, id) in device_events {
 
                     input_handler.device_event(
                         &mut local_info.commands,

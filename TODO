@@ -1,3 +1,3 @@
-FIXME: fix lag
+FIXME: fix lag (lag comes from render data from the rendering pipeline not saving and the renderer having to create everything every frame) should make the scene tree live on the render thread and make Commands to interact with it
 
 TODO: maybe don't give raw windowevents to the user
