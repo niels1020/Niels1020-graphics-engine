@@ -5,10 +5,8 @@ use winit::{
 
 use crate::{
     logic::{
-        engine::Engine,
-        game_window::{GameWindow, InputHandler},
-    },
-    render::render_layers::RenderLayer,
+        commands::Request::RenderLayerClone, engine::Engine, game_window::{GameWindow, InputHandler},
+    }, render::render_layers::RenderLayer,
 };
 
 pub(crate) enum Command {
@@ -19,12 +17,16 @@ pub(crate) enum Command {
 
     AddRenderLayer(WindowId, Box<dyn RenderLayer>),
     RemoveRenderLayer(WindowId, usize),
-    //TODO: GetRenderLayerClone(WindowId, usize),
+    GetRenderLayerClone(WindowId, usize, WindowId), //second window id is target to deliver the clone
     ModifyRenderLayer(
         WindowId,
         usize,
         Box<dyn FnOnce(&mut Box<dyn RenderLayer>) + Send>,
     ),
+}
+
+pub enum Request {
+    RenderLayerClone(Box<dyn RenderLayer>),
 }
 
 pub struct Commands {
@@ -62,7 +64,12 @@ impl Commands {
     where
         A: FnOnce(&mut Box<dyn RenderLayer>) + Send + 'static,
     {
-        self.queue.push(Command::ModifyRenderLayer(window_id, index, Box::new(op)));
+        self.queue
+            .push(Command::ModifyRenderLayer(window_id, index, Box::new(op)));
+    }
+
+    pub fn get_render_layer_clone(&mut self, to_clone: WindowId, index_to_clone: usize, to_deliver: WindowId) {
+        self.queue.push(Command::GetRenderLayerClone(to_clone, index_to_clone, to_deliver));
     }
 
     //leaves other empty
@@ -113,6 +120,16 @@ pub(crate) fn run_command(event_loop: &ActiveEventLoop, game: &mut Engine, comma
             if let Some(game_window) = game.windows.iter_mut().find(|a| a.window_id == window_id) {
                 if let Some(layer) = game_window.scene_tree.root.get_mut(index) {
                     fn_once(layer);
+                }
+            };
+        }
+        Command::GetRenderLayerClone(read, index, target) => {
+            if let Some(game_window) = game.windows.iter().find(|a| a.window_id == read) {
+                if let Some(pointer) = game_window.scene_tree.root.get(index) {
+                    let clone = pointer.clone();
+                    if let Some(target_layer) = game.windows.iter_mut().find(|a| a.window_id == target) {
+                       target_layer.shared_logic_info.as_ref().unwrap().lock().unwrap().requests.push(RenderLayerClone(clone)); 
+                    }
                 }
             };
         }

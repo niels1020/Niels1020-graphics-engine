@@ -240,7 +240,7 @@ impl RenderLayer3D {
         })
     }
 
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject3D>> {
+    pub fn get_child(&self, name: String) -> Option<&Box<dyn RenderObject3D>> {
         match self
             .to_render
             .iter()

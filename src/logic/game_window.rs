@@ -11,10 +11,8 @@ use winit::{
 
 use crate::{
     logic::{
-        commands::Commands,
-        threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
-    },
-    render::{render_layers::RenderLayer, renderer::Renderer},
+        commands::{Commands, Request}, threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
+    }, render::{render_layers::RenderLayer, renderer::Renderer},
 };
 
 //get removed after init
@@ -152,6 +150,8 @@ pub trait InputHandler: Send {
     fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
 
     fn exit(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
+
+    fn receive_request(&mut self, commands: &mut Commands, game_info: &mut GameInfo, request: Request);
 
     fn device_event(
         &mut self,

@@ -10,7 +10,7 @@ use winit::{
 };
 
 use crate::logic::{
-    commands::Commands,
+    commands::{Commands, Request},
     game_window::{GameInfo, InputHandler},
 };
 
@@ -19,6 +19,7 @@ pub(crate) struct LogicInfo {
     pub window_events: Vec<(WindowEvent, WindowId)>,
     pub device_events: Vec<(DeviceEvent, DeviceId)>,
     pub should_despawn: bool,
+    pub requests: Vec<Request>,
 }
 pub(crate) type SharedLogicInfo = Arc<Mutex<LogicInfo>>;
 
@@ -51,6 +52,7 @@ pub(crate) fn start_logic_thread(
         window_events: vec![],
         device_events: vec![],
         should_despawn: false,
+        requests: vec![],
     }));
     let shared_logic_info_thread = shared_logic_info.clone();
 
@@ -87,7 +89,7 @@ pub(crate) fn start_logic_thread(
 
             //event handling
             {
-                let (window_events, device_events) = {
+                let (window_events, device_events, requests) = {
                     let mut shared = shared_logic_info_thread.lock().unwrap();
                     (
                         shared
@@ -98,6 +100,7 @@ pub(crate) fn start_logic_thread(
                             .device_events
                             .drain(..)
                             .collect::<Vec<(DeviceEvent, DeviceId)>>(),
+                        shared.requests.drain(..).collect::<Vec<Request>>(),
                     )
                 };
 
@@ -121,12 +124,20 @@ pub(crate) fn start_logic_thread(
 
                 //device event handling
                 for (event, id) in device_events {
-
                     input_handler.device_event(
                         &mut local_info.commands,
                         &mut local_info.game_info,
                         event,
                         id,
+                    );
+                }
+
+                //delivering requests
+                for request in requests {
+                    input_handler.receive_request(
+                        &mut local_info.commands,
+                        &mut local_info.game_info,
+                        request,
                     );
                 }
             }

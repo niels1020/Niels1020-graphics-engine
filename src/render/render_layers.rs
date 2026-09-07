@@ -4,7 +4,7 @@ use wgpu::RenderPass;
 
 use crate::render::utils::global::RendererGlobal;
 
-pub trait RenderLayer: Send + Debug {
+pub trait RenderLayer: Send + Debug + Any{
     fn render(&mut self, global: &mut RendererGlobal, render_pass: &mut RenderPass);
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -22,3 +22,12 @@ pub fn layer_as_type_mut<T: RenderLayer + 'static>(
 ) -> Option<&mut T> {
     layer.as_any_mut().downcast_mut::<T>()
 }
+
+pub fn layer_as_type<T: RenderLayer + 'static>(
+    layer: Box<dyn RenderLayer>,
+) -> Option<Box<T>> {
+    let any: Box<dyn Any> = layer;
+    any.downcast::<T>().ok()
+}
+
+

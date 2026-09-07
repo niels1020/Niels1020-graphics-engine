@@ -4,7 +4,7 @@ use niels1020_graphics_engine::{
         DEFAULT_CAMERA_TARGET,
     },
     logic::{
-        commands::Commands,
+        commands::{Commands, Request},
         game_window::{GameInfo, InputHandler},
     },
     render::render_3d::{
@@ -97,6 +97,15 @@ impl InputHandler for Input {
     }
 
     fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {}
+
+    fn receive_request(
+        &mut self,
+        _commands: &mut Commands,
+        _game_info: &mut GameInfo,
+        _request: Request,
+    ) {
+        todo!();
+    }
 }
 
 impl Input {

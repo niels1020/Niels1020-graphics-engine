@@ -1,11 +1,11 @@
 use niels1020_graphics_engine::{
     logic::{
-        commands::Commands,
+        commands::{Commands, Request},
         game_window::{GameInfo, InputHandler},
     },
     render::{
         render_2d::{camera::Camera2D, layer::RenderLayer2D, render_objects::text::Text},
-        render_layers::layer_as_type_mut,
+        render_layers::{layer_as_type, layer_as_type_mut},
     },
     start_engine,
 };
@@ -49,6 +49,14 @@ impl InputHandler for Input {
                         KeyCode::Enter => {
                             commands.new_window(Box::new(Input::new()), WindowAttributes::default())
                         }
+                        KeyCode::Tab => {
+                            println!("requesting");
+                            commands.get_render_layer_clone(
+                                game_info.window_id,
+                                0,
+                                game_info.window_id,
+                            );
+                        }
                         _ => {}
                     }
                 }
@@ -58,7 +66,7 @@ impl InputHandler for Input {
                 position,
             } => {
                 let res_copy = self.resolution;
-                commands.modify_render_layer(game_info.window_id, 0,  move |layer| {
+                commands.modify_render_layer(game_info.window_id, 0, move |layer| {
                     match layer_as_type_mut::<RenderLayer2D>(layer) {
                         Some(layer2d) => {
                             layer2d.camera.data.position = [
@@ -80,11 +88,8 @@ impl InputHandler for Input {
     fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
 
     fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
-        let mut layer1 = RenderLayer2D::new(
-            None,
-            "Test 2D".to_string(),
-            Camera2D::new([800.0, 600.0]),
-        );
+        let mut layer1 =
+            RenderLayer2D::new(None, "Test 2D".to_string(), Camera2D::new([800.0, 600.0]));
         layer1.add_child(VerticesTest::new());
         layer1.add_child(TextureTest::new());
         layer1.add_child(Text::new(
@@ -99,6 +104,22 @@ impl InputHandler for Input {
 
     fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {
         println!("exit has been called");
+    }
+
+    fn receive_request(
+        &mut self,
+        _commands: &mut Commands,
+        _game_info: &mut GameInfo,
+        request: Request,
+    ) {
+        match request {
+            Request::RenderLayerClone(render_layer) => {
+                if let Some(layer) = layer_as_type::<RenderLayer2D>(render_layer) {
+                    let object = layer.get_child("TEXTURE TEST".to_string());
+                    println!("render_layer status: {:#?}", object);
+                }
+            }
+        }
     }
 }
 
@@ -150,7 +171,7 @@ impl RenderObject2D for VerticesTest {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }
@@ -210,7 +231,7 @@ impl RenderObject2D for TextureTest {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }

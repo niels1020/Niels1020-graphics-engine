@@ -159,7 +159,7 @@ impl RenderLayer2D {
         })
     }
 
-    pub fn get_child(&mut self, name: String) -> Option<&Box<dyn RenderObject2D>> {
+    pub fn get_child(&self, name: String) -> Option<&Box<dyn RenderObject2D>> {
         self.to_render.iter().find(|a| a.get_name() == name)
     }
 
