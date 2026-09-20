@@ -1,17 +1,15 @@
+use std::{thread, time::Duration};
+
 use niels1020_graphics_engine::{
     common::{
         CAMERA_FAR_PLANE, CAMERA_FOV, CAMERA_NEAR_PLANE, CUBE_VERTICES, DEFAULT_CAMERA_EYE,
         DEFAULT_CAMERA_TARGET,
-    },
-    logic::{
-        commands::{Commands, Request},
-        game_window::{GameInfo, InputHandler},
-    },
-    render::render_3d::{
+    }, logic::{
+        commands::{Commands, Request}, game_window::{GameInfo, InputHandler},
+    }, render::{render_3d::{
         camera::Camera3D,
         layer::{RenderLayer3D, RenderObject3D, Transform},
-    },
-    start_engine,
+    }, render_layers::layer_as_type_mut}, start_engine,
 };
 use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
@@ -68,7 +66,14 @@ impl InputHandler for Input {
         }
     }
 
-    fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
+    fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, _delta: f64) {
+        commands.modify_render_layer(game_info.window_id, 0, |layer| {
+            match layer_as_type_mut::<RenderLayer3D>(layer) {
+                Some(_) => thread::sleep(Duration::from_millis(1)),//very difficult calculations
+                None => {},
+            }
+        });
+    }
 
     fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer3D::new(

@@ -74,10 +74,19 @@ pub(crate) fn start_logic_thread(
             //render update
             {
                 let now = Instant::now();
-                let delta = (now - last_update).as_secs_f64();
 
-                input_handler.update(&mut local_info.commands, &mut local_info.game_info, delta);
-                last_update = now;
+                if (now - last_update)
+                    >= Duration::from_secs_f64(1.0 / local_info.game_info.update_rate as f64)
+                {
+                    let delta = (now - last_update).as_secs_f64();
+
+                    input_handler.update(
+                        &mut local_info.commands,
+                        &mut local_info.game_info,
+                        delta,
+                    );
+                    last_update = now;
+                }
 
                 let should_redraw = (now - last_redraw)
                     >= Duration::from_secs_f64(1.0 / local_info.game_info.refresh_rate as f64);
