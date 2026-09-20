@@ -43,7 +43,7 @@ pub(crate) fn start_logic_thread(
 ) -> (SharedLogicInfo, SharedRenderInfo) {
     let shared_render_info = Arc::new(Mutex::new(RenderInfo {
         commands: Commands::new(),
-        refresh_rate: 0,
+        refresh_rate: 1,
         window_id: window.clone().id(),
     }));
     let shared_render_info_thread = shared_render_info.clone();

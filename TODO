@@ -1,4 +1,4 @@
 make the Clone functions in the redner layers and etc. not clone everything (only needed data)
-
+remove cgmath dependency to something without security warning
 
 TODO: maybe don't give raw windowevents to the user
