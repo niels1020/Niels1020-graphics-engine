@@ -171,8 +171,6 @@ pub struct GameInfo {
     pub window: Arc<Window>,
     pub refresh_rate: usize,
     pub window_id: WindowId,
-    ///dont let update rate be higher then refresh rate or it will cause the render thread to be overwhelmed
-    pub update_rate: usize,
 }
 
 impl GameInfo {
@@ -181,7 +179,6 @@ impl GameInfo {
             window_id: window.id(),
             window,
             refresh_rate: 144,
-            update_rate: 60,
         }
     }
 }
