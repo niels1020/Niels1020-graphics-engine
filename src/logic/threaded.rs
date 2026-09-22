@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
@@ -16,8 +17,8 @@ use crate::logic::{
 
 ///put data here for loggic thread to proccess
 pub(crate) struct LogicInfo {
-    pub window_events: Vec<(WindowEvent, WindowId)>,
-    pub device_events: Vec<(DeviceEvent, DeviceId)>,
+    pub window_events: VecDeque<(WindowEvent, WindowId)>,
+    pub device_events: VecDeque<(DeviceEvent, DeviceId)>,
     pub should_despawn: bool,
     pub requests: Vec<Request>,
 }
@@ -49,8 +50,8 @@ pub(crate) fn start_logic_thread(
     let shared_render_info_thread = shared_render_info.clone();
 
     let shared_logic_info = Arc::new(Mutex::new(LogicInfo {
-        window_events: vec![],
-        device_events: vec![],
+        window_events: VecDeque::new(),
+        device_events: VecDeque::new(),
         should_despawn: false,
         requests: vec![],
     }));
@@ -104,12 +105,12 @@ pub(crate) fn start_logic_thread(
                         shared
                             .window_events
                             .drain(..)
-                            .collect::<Vec<(WindowEvent, WindowId)>>(),
+                            .collect::<VecDeque<(WindowEvent, WindowId)>>(),
                         shared
                             .device_events
                             .drain(..)
-                            .collect::<Vec<(DeviceEvent, DeviceId)>>(),
-                        shared.requests.drain(..).collect::<Vec<Request>>(),
+                            .collect::<VecDeque<(DeviceEvent, DeviceId)>>(),
+                        shared.requests.drain(..).collect::<VecDeque<Request>>(),
                     )
                 };
 

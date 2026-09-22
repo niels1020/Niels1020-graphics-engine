@@ -25,7 +25,7 @@ impl Engine {
 
     fn run_commands(&mut self, event_loop: &ActiveEventLoop) {
         while !self.commands.queue.is_empty() {
-            let command = self.commands.queue.remove(0);
+            let command = self.commands.queue.pop_front().unwrap();
             run_command(event_loop, self, command);
         }
     }

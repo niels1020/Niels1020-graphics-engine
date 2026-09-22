@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use winit::{
     event_loop::ActiveEventLoop,
     window::{WindowAttributes, WindowId},
@@ -30,16 +32,16 @@ pub enum Request {
 }
 
 pub struct Commands {
-    pub(crate) queue: Vec<Command>,
+    pub(crate) queue: VecDeque<Command>,
 }
 
 impl Commands {
     pub fn close_window(&mut self, id: WindowId) {
-        self.queue.push(Command::CloseWindow(id));
+        self.queue.push_back(Command::CloseWindow(id));
     }
 
     pub fn exit(&mut self) {
-        self.queue.push(Command::Exit);
+        self.queue.push_back(Command::Exit);
     }
 
     pub fn new_window(
@@ -48,16 +50,16 @@ impl Commands {
         window_attributes: WindowAttributes,
     ) {
         self.queue
-            .push(Command::NewWindow(input_handler, window_attributes));
+            .push_back(Command::NewWindow(input_handler, window_attributes));
     }
 
     pub fn add_render_layer(&mut self, window_id: WindowId, layer: Box<dyn RenderLayer>) {
-        self.queue.push(Command::AddRenderLayer(window_id, layer));
+        self.queue.push_back(Command::AddRenderLayer(window_id, layer));
     }
 
     pub fn remove_render_layer(&mut self, window_id: WindowId, index: usize) {
         self.queue
-            .push(Command::RemoveRenderLayer(window_id, index));
+            .push_back(Command::RemoveRenderLayer(window_id, index));
     }
 
     pub fn modify_render_layer<A>(&mut self, window_id: WindowId, index: usize, op: A)
@@ -65,11 +67,11 @@ impl Commands {
         A: FnOnce(&mut Box<dyn RenderLayer>) + Send + 'static,
     {
         self.queue
-            .push(Command::ModifyRenderLayer(window_id, index, Box::new(op)));
+            .push_back(Command::ModifyRenderLayer(window_id, index, Box::new(op)));
     }
 
     pub fn get_render_layer_clone(&mut self, to_clone: WindowId, index_to_clone: usize, to_deliver: WindowId) {
-        self.queue.push(Command::GetRenderLayerClone(to_clone, index_to_clone, to_deliver));
+        self.queue.push_back(Command::GetRenderLayerClone(to_clone, index_to_clone, to_deliver));
     }
 
     //leaves other empty
@@ -78,7 +80,7 @@ impl Commands {
     }
 
     pub fn new() -> Self {
-        Self { queue: vec![] }
+        Self { queue: VecDeque::new() }
     }
 }
 

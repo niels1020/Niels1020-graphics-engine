@@ -113,13 +113,13 @@ impl GameWindow {
             }
         }
         if let Ok(mut shared) = self.shared_logic_info.as_ref().unwrap().try_lock() {
-            shared.window_events.push((event, window_id));
+            shared.window_events.push_back((event, window_id));
         }
     }
 
     pub fn device_event(&mut self, event: DeviceEvent, device_id: DeviceId) {
         if let Ok(mut shared) = self.shared_logic_info.as_ref().unwrap().try_lock() {
-            shared.device_events.push((event, device_id));
+            shared.device_events.push_back((event, device_id));
         }
     }
 }
