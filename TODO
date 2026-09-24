@@ -1,4 +1,2 @@
-make the Clone functions in the redner layers and etc. not clone everything (only needed data)
+implement formatter for certain types so we dont need Debug trait
 remove cgmath dependency to something without security warning
-
-TODO: maybe don't give raw windowevents to the user

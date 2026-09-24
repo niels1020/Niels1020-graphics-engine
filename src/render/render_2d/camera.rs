@@ -4,8 +4,8 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
 };
 
-#[derive(Clone, Debug)]
-pub struct Camera2D{
+#[derive(Debug)]
+pub struct Camera2D {
     pub(crate) layout: Option<BindGroupLayout>,
     pub(crate) bind: Option<BindGroup>,
     buffer: Option<Buffer>,
@@ -19,6 +19,17 @@ pub struct Camera2D{
 pub struct Camera2DData {
     pub position: [f32; 2],
     pub render_resolution: [f32; 2],
+}
+
+impl Clone for Camera2D {
+    fn clone(&self) -> Self {
+        Self {
+            layout: None,
+            bind: None,
+            buffer: None,
+            data: self.data.clone(),
+        }
+    }
 }
 
 impl Camera2D {

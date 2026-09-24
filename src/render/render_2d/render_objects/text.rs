@@ -6,7 +6,7 @@ use crate::{
     render::render_2d::layer::{RenderLayer2DGlobal, RenderObject2D},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Text {
     pos_changed: bool,
     text_changed: bool,
@@ -234,9 +234,26 @@ impl RenderObject2D for Text {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
+    }
+}
+
+impl Clone for Text {
+    fn clone(&self) -> Self {
+        Self {
+            pos_changed: true,
+            text_changed: false,
+            font_name: self.font_name.clone(),
+            text: self.text.clone(),
+            color: self.color.clone(),
+            old_image_name: None,
+            scale: self.scale.clone(),
+            pos: self.pos.clone(),
+            glyphs_width: self.glyphs_width.clone(),
+            glyphs_height: self.glyphs_height.clone(),
+        }
     }
 }
 

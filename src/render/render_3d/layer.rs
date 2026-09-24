@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct RenderLayer3D {
     to_render: Vec<RenderObject3DContainer>,
     render_pipeline: Option<RenderPipeline>,
@@ -39,7 +39,27 @@ pub struct RenderLayer3D {
     transform_layout: Option<BindGroupLayout>,
 }
 
-pub trait RenderObject3D: Send + Debug{
+impl Clone for RenderLayer3D {
+    fn clone(&self) -> Self {
+        Self {
+            to_render: self.to_render.clone(),
+            render_pipeline: None,
+            shader: self.shader.clone(),
+            name: self.name.clone(),
+            number_of_children_changed: true,
+            atlas_bind: None,
+            atlas_texture: self.atlas_texture.clone(),
+            atlas_rebuilt: false,
+            camera: self.camera.clone(),
+            camera_bind: None,
+            camera_buffer: None,
+            camera_uniform: self.camera_uniform.clone(),
+            transform_layout: None,
+        }
+    }
+}
+
+pub trait RenderObject3D: Send + Debug {
     fn have_vertices_changed(&self) -> bool;
     ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
     fn get_vertices(&mut self, global: &mut RenderLayer3DGlobal) -> Vec<Vertex>;
@@ -203,7 +223,7 @@ impl RenderLayer for RenderLayer3D {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
     }
@@ -401,13 +421,25 @@ pub struct RenderLayer3DGlobal<'a> {
     pub atlas_texture: &'a mut AtlasTexture,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct RenderObject3DContainer {
     object: Box<dyn RenderObject3D>,
     transform_bind: Option<BindGroup>,
     vertex_buffer: Option<Buffer>,
     transform_buffer: Option<Buffer>,
     vertices_len: usize,
+}
+
+impl Clone for RenderObject3DContainer {
+    fn clone(&self) -> Self {
+        Self {
+            object: self.object.clone(),
+            transform_bind: None,
+            vertex_buffer: None,
+            transform_buffer: None,
+            vertices_len: 0,
+        }
+    }
 }
 
 impl From<Box<dyn RenderObject3D + Send>> for RenderObject3DContainer {

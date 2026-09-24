@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct RenderLayer2D {
     to_render: Vec<Box<dyn RenderObject2D>>,
     render_pipeline: Option<RenderPipeline>,
@@ -33,7 +33,7 @@ pub struct RenderLayer2D {
     pub camera: Camera2D,
 }
 
-pub trait RenderObject2D: Send + Debug{
+pub trait RenderObject2D: Send + Debug {
     fn have_vertices_changed(&mut self) -> bool;
     ///gets called when have_vertices_changed of any object returns true or when the atlas has been rebuild
     fn get_vertices(&mut self, global: &mut RenderLayer2DGlobal) -> Vec<Vertex>;
@@ -125,9 +125,27 @@ impl RenderLayer for RenderLayer2D {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-    
+
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
+    }
+}
+
+impl Clone for RenderLayer2D {
+    fn clone(&self) -> Self {
+        Self {
+            to_render: self.to_render.clone(),
+            render_pipeline: None,
+            shader: self.shader.clone(),
+            name: self.name.clone(),
+            vertex_buffer: None,
+            vertices_len: 0,
+            number_of_children_changed: true,
+            atlas_bind: None,
+            atlas_texture: self.atlas_texture.clone(),
+            atlas_rebuilt: false,
+            camera: self.camera.clone(),
+        }
     }
 }
 
@@ -138,12 +156,11 @@ impl RenderLayer2D {
         name: String,
         camera: Camera2D,
     ) -> Box<Self> {
-
         let shader = match shader {
             Some(s) => s,
             None => include_wgsl!("../../../assets/test/2d.wgsl"),
         };
-        
+
         Box::new(Self {
             to_render: vec![],
             render_pipeline: None,
