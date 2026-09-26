@@ -7,6 +7,7 @@ pub mod render;
 pub use wgpu::include_wgsl;
 pub use winit;
 pub use image::load_from_memory;
+pub use nalgebra;
 
 use crate::logic::{engine::Engine, game_window::InputHandler};
 

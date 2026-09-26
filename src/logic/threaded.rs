@@ -1,7 +1,7 @@
 use std::{
     collections::VecDeque,
     sync::{Arc, Mutex},
-    thread,
+    thread::{self, sleep},
     time::{Duration, Instant},
 };
 
@@ -78,13 +78,8 @@ pub(crate) fn start_logic_thread(
 
                 let delta = (now - last_update).as_secs_f64();
 
-                input_handler.update(
-                    &mut local_info.commands,
-                    &mut local_info.game_info,
-                    delta,
-                );
+                input_handler.update(&mut local_info.commands, &mut local_info.game_info, delta);
                 last_update = now;
-
 
                 let should_redraw = (now - last_redraw)
                     >= Duration::from_secs_f64(1.0 / local_info.game_info.refresh_rate as f64);
@@ -161,12 +156,18 @@ pub(crate) fn start_logic_thread(
                 }
             }
 
-            //clone scene tree and commands to render thread
-            {
+            //push commands to render thread
+            while true {
                 let mut shared = shared_render_info_thread.lock().unwrap();
-                shared.commands.append(&mut local_info.commands);
-                shared.refresh_rate = local_info.game_info.refresh_rate;
+                if shared.commands.len() >= local_info.game_info.max_queue_size {
+                    println!("commands queue to long waiting until it is shorter");
+                    sleep(Duration::from_millis(5));
+                } else {
+                    shared.commands.append(&mut local_info.commands);
+                    shared.refresh_rate = local_info.game_info.refresh_rate;
+                }
             }
+            {}
         }
     });
 

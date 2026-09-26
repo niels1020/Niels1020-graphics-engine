@@ -1,15 +1,23 @@
 use std::{thread, time::Duration};
 
+use nalgebra::Vector3;
 use niels1020_graphics_engine::{
     common::{
         CAMERA_FAR_PLANE, CAMERA_FOV, CAMERA_NEAR_PLANE, CUBE_VERTICES, DEFAULT_CAMERA_EYE,
         DEFAULT_CAMERA_TARGET,
-    }, logic::{
-        commands::{Commands, Request}, game_window::{GameInfo, InputHandler},
-    }, render::{render_3d::{
-        camera::Camera3D,
-        layer::{RenderLayer3D, RenderObject3D, Transform},
-    }, render_layers::layer_as_type_mut}, start_engine,
+    },
+    logic::{
+        commands::{Commands, Request},
+        game_window::{GameInfo, InputHandler},
+    },
+    render::{
+        render_3d::{
+            camera::Camera3D,
+            layer::{RenderLayer3D, RenderObject3D, Transform},
+        },
+        render_layers::layer_as_type_mut,
+    },
+    start_engine,
 };
 use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
@@ -69,8 +77,10 @@ impl InputHandler for Input {
     fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, _delta: f64) {
         commands.modify_render_layer(game_info.window_id, 0, |layer| {
             match layer_as_type_mut::<RenderLayer3D>(layer) {
-                Some(_) => thread::sleep(Duration::from_millis(1)),//very difficult calculations
-                None => {},
+                Some(_) => 
+                    thread::sleep(Duration::from_millis(1)),
+                //very difficult calculations
+                None => {}
             }
         });
     }
@@ -84,7 +94,7 @@ impl InputHandler for Input {
                 // Point camera at the origin
                 target: DEFAULT_CAMERA_TARGET.into(),
                 // Define which direction is "up"
-                up: cgmath::Vector3::unit_y(),
+                up: Vector3::new(0.0, 1.0, 0.0),
                 aspect: 16.0 / 9.0,
                 fovy: CAMERA_FOV,
                 znear: CAMERA_NEAR_PLANE,

@@ -48,7 +48,7 @@ impl Renderer {
 
         let (device, queue) = adapter
             .request_device(&DeviceDescriptor {
-                label: Some("wgpu_game_engine"),
+                label: Some("niels1020_graphics_engine"),
                 required_features: Features::empty(),
                 required_limits: Limits::default(),
                 experimental_features: ExperimentalFeatures::disabled(),
@@ -87,6 +87,8 @@ impl Renderer {
             };
 
         surface.configure(&device, &config);
+
+        println!("done renderer init");
 
             Self {
                 global: RendererGlobal {

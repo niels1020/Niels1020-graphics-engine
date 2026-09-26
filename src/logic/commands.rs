@@ -36,6 +36,10 @@ pub struct Commands {
 }
 
 impl Commands {
+    pub fn len(&self) -> usize {
+        self.queue.len()
+    }
+
     pub fn close_window(&mut self, id: WindowId) {
         self.queue.push_back(Command::CloseWindow(id));
     }

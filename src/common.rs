@@ -1,4 +1,5 @@
 use bytemuck::NoUninit;
+use nalgebra::Point3;
 
 // ============================================================================
 // Constants
@@ -19,10 +20,10 @@ pub const DEPTH_CLEAR_VALUE: f32 = 1.0;
 pub const MAX_FRAME_LATENCY: u32 = 2;
 
 /// Default camera position (units: 1 up, 2 back from origin)
-pub const DEFAULT_CAMERA_EYE: (f32, f32, f32) = (0.0, 0.0, 0.0);
+pub const DEFAULT_CAMERA_EYE: Point3<f32> = Point3::new(0.0, 0.0, 0.0);
 
 /// Default point the camera looks at
-pub const DEFAULT_CAMERA_TARGET: (f32, f32, f32) = (1.0, 0.0, 0.0);
+pub const DEFAULT_CAMERA_TARGET: Point3<f32> = Point3::new(1.0, 0.0, 0.0);
 
 /// Camera field of view in degrees
 pub const CAMERA_FOV: f32 = 90.0;
@@ -79,7 +80,8 @@ impl Vertex {
                     format: wgpu::VertexFormat::Float32x2,
                 },
                 wgpu::VertexAttribute {
-                    offset: (mem::size_of::<[f32; 3]>() + mem::size_of::<[f32; 2]>()) as wgpu::BufferAddress,
+                    offset: (mem::size_of::<[f32; 3]>() + mem::size_of::<[f32; 2]>())
+                        as wgpu::BufferAddress,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Uint32,
                 },

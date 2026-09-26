@@ -1,2 +1,2 @@
 implement formatter for certain types so we dont need Debug trait
-remove cgmath dependency to something without security warning
+add simple logging

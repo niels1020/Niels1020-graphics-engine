@@ -98,7 +98,7 @@ impl GameWindow {
                 match event {
                     WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
-                        let mut shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
+                        let shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
                         let now = Instant::now();
                         if (now - self.last_render)
                             >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
@@ -106,11 +106,19 @@ impl GameWindow {
                             self.last_render = now;
                             renderer.render(&mut self.scene_tree);
                         }
-                        commands.append(&mut shared.commands);
+                        else {
+                            println!("skipping rendering")
+                        }
+                        
                     }
                     _ => {}
                 }
             }
+        }
+        {
+            
+            let mut shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
+            commands.append(&mut shared.commands);
         }
         if let Ok(mut shared) = self.shared_logic_info.as_ref().unwrap().lock() {
             shared.window_events.push_back((event, window_id));
@@ -171,6 +179,7 @@ pub struct GameInfo {
     pub window: Arc<Window>,
     pub refresh_rate: usize,
     pub window_id: WindowId,
+    pub max_queue_size: usize,
 }
 
 impl GameInfo {
@@ -179,6 +188,7 @@ impl GameInfo {
             window_id: window.id(),
             window,
             refresh_rate: 144,
+            max_queue_size: 50,
         }
     }
 }

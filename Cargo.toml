@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 bytemuck = "1.25"
-cgmath = "0.18.0"
 cosmic-text = "0.19.0"
 image = "0.25"
+nalgebra = "0.35.0"
 pollster = "1"
 wgpu = "30"
 winit = "0.30"
