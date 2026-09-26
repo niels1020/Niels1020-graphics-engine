@@ -157,7 +157,7 @@ pub(crate) fn start_logic_thread(
             }
 
             //push commands to render thread
-            while true {
+            loop {
                 let mut shared = shared_render_info_thread.lock().unwrap();
                 if shared.commands.len() >= local_info.game_info.max_queue_size {
                     println!("commands queue to long waiting until it is shorter");
