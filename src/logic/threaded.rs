@@ -79,12 +79,18 @@ pub(crate) fn start_logic_thread(
                 let delta = (now - last_update).as_secs_f64();
 
                 input_handler.update(&mut local_info.commands, &mut local_info.game_info, delta);
-                last_update = now;
+                #[allow(unused_assignments)]
+                {
+                    last_update = now;
+                }
 
                 let should_redraw = (now - last_redraw)
                     >= Duration::from_secs_f64(1.0 / local_info.game_info.refresh_rate as f64);
                 if should_redraw {
-                    last_redraw = now;
+                    #[allow(unused_assignments)]
+                    {
+                        last_redraw = now;
+                    }
                     local_info.game_info.window.request_redraw();
                 }
             }
@@ -167,7 +173,6 @@ pub(crate) fn start_logic_thread(
                     shared.refresh_rate = local_info.game_info.refresh_rate;
                 }
             }
-            {}
         }
     });
 
