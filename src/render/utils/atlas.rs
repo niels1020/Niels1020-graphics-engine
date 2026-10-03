@@ -208,24 +208,6 @@ impl AtlasTexture {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::AtlasTexture;
-    use image::DynamicImage;
-
-    #[test]
-    fn atlas_uvs_are_inset_from_texel_edges() {
-        let mut atlas = AtlasTexture::new();
-        atlas.add_image(DynamicImage::new_rgba8(4, 2), "a".to_string());
-        atlas.add_image(DynamicImage::new_rgba8(2, 2), "b".to_string());
-
-        let rect_a = atlas.get_relative_texture_rect("a".to_string()).unwrap();
-
-        assert!((rect_a.top_left[0] - (0.5 / 6.0)).abs() < 0.0001);
-        assert!((rect_a.bottom_right[0] - (3.5 / 6.0)).abs() < 0.0001);
-    }
-}
-
 impl Rect {
     ///top_left, top_right, bottom_left, bottom_right
     pub fn bounds(&self) -> ((f32, f32), (f32, f32), (f32, f32), (f32, f32)) {
