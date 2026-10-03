@@ -17,7 +17,6 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
 pub struct RenderLayer2D {
     to_render: Vec<Box<dyn RenderObject2D>>,
     render_pipeline: Option<RenderPipeline>,

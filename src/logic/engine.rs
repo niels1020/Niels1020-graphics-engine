@@ -33,6 +33,7 @@ impl Engine {
 
 impl ApplicationHandler for Engine {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
         let len = self.windows.len();
         self.windows
             .get_mut(len - 1)
@@ -60,7 +61,14 @@ impl ApplicationHandler for Engine {
         event: winit::event::DeviceEvent,
     ) {
         for window in self.windows.iter_mut() {
-            window.device_event(event.clone(), device_id);
+            window.device_event(&mut self.commands, event.clone(), device_id);
+        }
+        self.run_commands(event_loop);
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        for window in self.windows.iter_mut() {
+            window.update_commands(&mut self.commands);
         }
         self.run_commands(event_loop);
     }

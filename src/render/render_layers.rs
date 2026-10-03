@@ -1,10 +1,10 @@
-use std::{any::Any, fmt::Debug};
+use std::any::Any;
 
 use wgpu::RenderPass;
 
 use crate::render::utils::global::RendererGlobal;
 
-pub trait RenderLayer: Send + Debug + Any{
+pub trait RenderLayer: Send + Any{
     fn render(&mut self, global: &mut RendererGlobal, render_pass: &mut RenderPass);
 
     fn as_any_mut(&mut self) -> &mut dyn Any;

@@ -11,8 +11,10 @@ use winit::{
 
 use crate::{
     logic::{
-        commands::{Commands, Request}, threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
-    }, render::{render_layers::RenderLayer, renderer::Renderer},
+        commands::{Commands, Request},
+        threaded::{SharedLogicInfo, SharedRenderInfo, start_logic_thread},
+    },
+    render::{render_layers::RenderLayer, renderer::Renderer},
 };
 
 //get removed after init
@@ -32,7 +34,7 @@ pub struct GameWindow {
     last_render: Instant,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SceneTree {
     pub root: Vec<Box<dyn RenderLayer>>,
 }
@@ -106,19 +108,10 @@ impl GameWindow {
                             self.last_render = now;
                             renderer.render(&mut self.scene_tree);
                         }
-                        else {
-                            println!("skipping rendering")
-                        }
-                        
                     }
                     _ => {}
                 }
             }
-        }
-        {
-            
-            let mut shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
-            commands.append(&mut shared.commands);
         }
         if let Ok(mut shared) = self.shared_logic_info.as_ref().unwrap().lock() {
             shared.window_events.push_back((event, window_id));
@@ -127,12 +120,22 @@ impl GameWindow {
         }
     }
 
-    pub fn device_event(&mut self, event: DeviceEvent, device_id: DeviceId) {
+    pub fn device_event(
+        &mut self,
+        commands: &mut Commands,
+        event: DeviceEvent,
+        device_id: DeviceId,
+    ) {
         if let Ok(mut shared) = self.shared_logic_info.as_ref().unwrap().lock() {
             shared.device_events.push_back((event, device_id));
         } else {
             panic!("could not lock device event queue")
         }
+    }
+
+    pub fn update_commands(&mut self, commands: &mut Commands) {
+        let mut shared = self.shared_render_info.as_mut().unwrap().lock().unwrap();
+        commands.append(&mut shared.commands);
     }
 }
 
@@ -163,7 +166,12 @@ pub trait InputHandler: Send {
 
     fn exit(&mut self, commands: &mut Commands, game_info: &mut GameInfo);
 
-    fn receive_request(&mut self, commands: &mut Commands, game_info: &mut GameInfo, request: Request);
+    fn receive_request(
+        &mut self,
+        commands: &mut Commands,
+        game_info: &mut GameInfo,
+        request: Request,
+    );
 
     fn device_event(
         &mut self,

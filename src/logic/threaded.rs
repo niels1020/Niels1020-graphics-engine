@@ -1,10 +1,8 @@
 use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-    thread::{self, sleep},
-    time::{Duration, Instant},
+    collections::VecDeque, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant},
 };
 
+use nalgebra::min;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
     window::{Window, WindowId},
@@ -163,14 +161,17 @@ pub(crate) fn start_logic_thread(
             }
 
             //push commands to render thread
-            loop {
-                let mut shared = shared_render_info_thread.lock().unwrap();
-                if shared.commands.len() >= local_info.game_info.max_queue_size {
-                    println!("commands queue to long waiting until it is shorter");
-                    sleep(Duration::from_millis(5));
+            let mut last_sleep = 20;
+            'coms: loop {
+                let len = {shared_render_info_thread.lock().unwrap().commands.len()};//this is so the shared info doesnt get blocke while waiting
+                if  len >= local_info.game_info.max_queue_size {
+                    sleep(Duration::from_millis(last_sleep));
+                    last_sleep = min(last_sleep * 2, 500);
                 } else {
+                    let mut shared = shared_render_info_thread.lock().unwrap();
                     shared.commands.append(&mut local_info.commands);
                     shared.refresh_rate = local_info.game_info.refresh_rate;
+                    break 'coms;
                 }
             }
         }

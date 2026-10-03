@@ -1,6 +1,6 @@
+use image::{DynamicImage, GenericImage};
+use rect_packer::{Config, Packer};
 use std::collections::HashMap;
-
-use image::{DynamicImage, GenericImage, GenericImageView};
 use wgpu::{
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, Device, Queue, ShaderStages, TextureSampleType, TextureViewDimension,
@@ -14,109 +14,134 @@ pub struct Rect {
     pub bottom_right: [f32; 2],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AtlasTexture {
     need_update: bool,
     pub(crate) merged_texture: Option<Texture>,
-    positions: Vec<Rect>, //array whitch contains the area each texture holds in the merged texture
-    relative_positions: Vec<Rect>,
-    size: (u32, u32),
+    relative_positions: Vec<Rect>, //array whitch contains the area each texture holds in the merged texture relative to size
 
     images: Vec<DynamicImage>,
     name_id_lookup: HashMap<String, usize>, //lookup for whitch texture name has whitch position in images and positions
+
+    config: Config,
+    packer: Packer,
 }
 
 impl AtlasTexture {
     pub fn new() -> Self {
+        let config = Config {
+            width: 1024,
+            height: 1024,
+            border_padding: 0,
+            rectangle_padding: 1,
+        };
         Self {
             need_update: false,
             merged_texture: None,
             images: vec![],
-            positions: vec![],
             name_id_lookup: HashMap::new(),
             relative_positions: vec![],
-            size: (0, 0),
+            config,
+            packer: Packer::new(config),
         }
     }
 
     pub(crate) fn build(&mut self, queue: &Queue, device: &Device) {
         self.need_update = false;
 
-        self.build_positions();
-        let (needed_width, needed_height) = self.size;
+        let mut merged_image = DynamicImage::new(
+            self.config.width as u32,
+            self.config.height as u32,
+            image::ColorType::Rgba8,
+        );
 
-        //check for empty atlas
-        let merged_image = if needed_height == 0 || needed_width == 0 {
-            self.size = (1, 1);
-            DynamicImage::new(1, 1, image::ColorType::Rgba8)
-        } else {
-            let mut merged_image =
-                DynamicImage::new(needed_width, needed_height, image::ColorType::Rgba8);
-            for (i, img) in self.images.iter().enumerate() {
-                let top_left = self.positions.get(i).unwrap().top_left;
-                merged_image
-                    .copy_from(img, top_left[0] as u32, top_left[1] as u32)
-                    .unwrap();
-            }
-            merged_image.into()
-        };
+        for i in 0..self.relative_positions.len() {
+            let rel_rect = self.relative_positions.get(i).unwrap();
+            merged_image.copy_from(
+                self.images.get(i).unwrap(),
+                (rel_rect.top_left[0] * self.config.width as f32) as u32,
+                (rel_rect.top_left[1] * self.config.height as f32) as u32,
+            ).unwrap();
+        }
 
         //uploading as texture
         self.merged_texture = Some(Texture::from_image(device, queue, &merged_image, None));
     }
 
-    pub fn add_image(&mut self, img: DynamicImage, name: String) -> usize{
+    pub fn add_image(&mut self, img: DynamicImage, name: String) -> usize {
         self.need_update = true;
-        let id = self.images.len();
-        self.images.push(img);
-        self.name_id_lookup.insert(name, id);
-        id
+        loop {
+            let h = img.height();
+            let w = img.width();
+
+            if let Some(rect) = self.packer.pack(w as i32, h as i32, false) {
+                let own_rect_rel = Rect {
+                    top_left: [
+                        rect.left() as f32 / self.config.width as f32,
+                        rect.top() as f32 / self.config.height as f32,
+                    ],
+                    bottom_right: [
+                        rect.right() as f32 / self.config.width as f32,
+                        rect.bottom() as f32 / self.config.height as f32,
+                    ],
+                };
+                self.relative_positions.push(own_rect_rel);
+                let id = self.relative_positions.len() - 1;
+                self.name_id_lookup.insert(name, id);
+                self.images.push(img);
+                return id;
+            } else {
+                println!("texture atlass to small expanding");
+                self.config = Config {
+                    height: self.config.height * 2,
+                    width: self.config.width * 2,
+                    ..self.config
+                };
+                self.packer = Packer::new(self.config);
+                self.repack_all_images();
+            }
+        }
+    }
+
+    fn repack_all_images(&mut self) {
+        for (i, img) in self.images.iter().enumerate() {
+            let h = img.height();
+            let w = img.width();
+
+            if let Some(rect) = self.packer.pack(w as i32, h as i32, false) {
+                let own_rect_rel = Rect {
+                    top_left: [
+                        rect.left() as f32 / self.config.width as f32,
+                        rect.top() as f32 / self.config.height as f32,
+                    ],
+                    bottom_right: [
+                        rect.right() as f32 / self.config.width as f32,
+                        rect.bottom() as f32 / self.config.height as f32,
+                    ],
+                };
+                self.relative_positions[i] = own_rect_rel;
+                break;
+            } else {
+                panic!(
+                    "packer size increased but images witch fitted in the previous one dont fit in the large one"
+                )
+            }
+        }
     }
 
     pub fn remove_image(&mut self, name: String) -> Result<(), String> {
-        self.need_update = true;
-        match self.name_id_lookup.remove(&name) {
-            Some(id) => {
-                let last_id = self.images.len().saturating_sub(1);
-
-                if id < self.images.len() {
-                    self.images.swap_remove(id);
-                }
-
-                // If the removed slot was not the last one, the image that moved into it
-                // must keep its original name lookup record, and every later ID must be
-                // shifted back by one because the image vector is now compacted.
-                if id != last_id && !self.images.is_empty() {
-                    let swapped_name = self
-                        .name_id_lookup
-                        .iter()
-                        .find_map(|(candidate_name, candidate_id)| {
-                            if *candidate_id == last_id {
-                                Some(candidate_name.clone())
-                            } else {
-                                None
-                            }
-                        });
-
-                    if let Some(swapped_name) = swapped_name {
-                        self.name_id_lookup.insert(swapped_name, id);
-                    }
-
-                    for (_, candidate_id) in self.name_id_lookup.iter_mut() {
-                        if *candidate_id > id {
-                            *candidate_id -= 1;
-                        }
-                    }
-                }
-
-                Ok(())
-            }
-            None => Err(format!("The image {} doesn't exist in this atlas", name)),
+        if let Some(id) = self.name_id_lookup.get(&name) {
+            self.images.remove(*id);
+            self.relative_positions.remove(*id);
+            self.name_id_lookup.remove(&name);
+            Ok(())
+        } else {
+            Err("name doesnt exist in atlas".to_string())
         }
     }
 
     pub fn build_if_needed(&mut self, queue: &Queue, device: &Device) -> bool {
-        if self.need_update == true {
+        if self.need_update {
             self.build(queue, device);
             true
         } else {
@@ -125,41 +150,11 @@ impl AtlasTexture {
     }
 
     pub fn get_relative_texture_rect(&mut self, name: String) -> Result<&Rect, String> {
-        let _ = self.build_positions();
-        match self.name_id_lookup.get(&name) {
-            Some(id) => match self.relative_positions.get(*id) {
-                Some(rect) => Ok(rect),
-                None => Err(format!(
-                    "The key {} exists but there isn't a linked rect. Please make sure you have called build_positions() or build_if_needed()",
-                    name
-                )),
-            },
-            None => Err(format!("Can't find key {}", name)),
+        if let Some(id) = self.name_id_lookup.get(&name) {
+            Ok(self.relative_positions.get(*id).unwrap())
+        } else {
+            Err("name doesnt exist in atlas".to_string())
         }
-    }
-
-    fn build_positions(&mut self) {
-        let mut needed_height = 0;
-        let mut needed_width = 0;
-
-        self.positions.clear();
-
-        for img in self.images.iter() {
-            let dimensions = img.dimensions();
-            if needed_height < dimensions.1 {
-                needed_height = dimensions.1;
-            }
-
-            self.positions.push(Rect {
-                top_left: [needed_width as f32, 0.0],
-                bottom_right: [(needed_width + dimensions.0) as f32, dimensions.1 as f32],
-            });
-
-            needed_width += dimensions.0;
-        }
-
-        self.size = (needed_width, needed_height);
-        self.make_psoitions_relative();
     }
 
     //always binding 1
@@ -206,27 +201,6 @@ impl AtlasTexture {
                 },
             ],
         })
-    }
-
-    fn make_psoitions_relative(&mut self) {
-        let atlas_width = self.size.0.max(1) as f32;
-        let atlas_height = self.size.1.max(1) as f32;
-
-        self.relative_positions = self
-            .positions
-            .iter()
-            .map(|r| {
-                let left = (r.top_left[0] + 0.5) / atlas_width;
-                let right = (r.bottom_right[0] - 0.5) / atlas_width;
-                let top = (r.top_left[1] + 0.5) / atlas_height;
-                let bottom = (r.bottom_right[1] - 0.5) / atlas_height;
-
-                Rect {
-                    top_left: [left, top],
-                    bottom_right: [right, bottom],
-                }
-            })
-            .collect();
     }
 
     pub fn has_image(&self, name: String) -> bool {

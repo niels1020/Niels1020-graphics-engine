@@ -19,7 +19,6 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
 pub struct RenderLayer3D {
     to_render: Vec<RenderObject3DContainer>,
     render_pipeline: Option<RenderPipeline>,
