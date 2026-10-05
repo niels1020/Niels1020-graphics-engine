@@ -118,6 +118,7 @@ impl GameWindow {
         } else {
             panic!("could not lock window event queue")
         }
+        self.update_commands(commands);
     }
 
     pub fn device_event(
@@ -131,6 +132,7 @@ impl GameWindow {
         } else {
             panic!("could not lock device event queue")
         }
+        self.update_commands(commands);
     }
 
     pub fn update_commands(&mut self, commands: &mut Commands) {
