@@ -1,7 +1,12 @@
 use std::{
-    collections::VecDeque, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant},
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+    thread::{self, sleep},
+    time::{Duration, Instant},
 };
 
+use egui::{Context, FullOutput};
+use egui_winit::State;
 use nalgebra::min;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
@@ -26,6 +31,8 @@ pub(crate) type SharedLogicInfo = Arc<Mutex<LogicInfo>>;
 pub(crate) struct LocalInfo {
     pub game_info: GameInfo,
     pub commands: Commands,
+    pub egui_ctx: Context,
+    pub egui_state: State,
 }
 
 ///data gets copied here from localinfo at the end of a logic iteration
@@ -33,17 +40,20 @@ pub(crate) struct RenderInfo {
     pub commands: Commands,
     pub refresh_rate: usize,
     pub window_id: WindowId,
+    pub egui_output: Option<FullOutput>,
 }
 pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
     window: Arc<Window>,
     input_handler: Box<dyn InputHandler + Send>,
+    gui_ctx: Context,
 ) -> (SharedLogicInfo, SharedRenderInfo) {
     let shared_render_info = Arc::new(Mutex::new(RenderInfo {
         commands: Commands::new(),
         refresh_rate: 1,
         window_id: window.clone().id(),
+        egui_output: None,
     }));
     let shared_render_info_thread = shared_render_info.clone();
 
@@ -60,8 +70,17 @@ pub(crate) fn start_logic_thread(
 
         let mut local_info = {
             LocalInfo {
+                egui_state: State::new(
+                    gui_ctx.clone(),
+                    egui::ViewportId::ROOT,
+                    &window.clone(),
+                    Some(window.scale_factor() as f32),
+                    None,
+                    None,
+                ),
                 game_info: GameInfo::new(window),
                 commands: Commands::new(),
+                egui_ctx: gui_ctx,
             }
         };
 
@@ -112,11 +131,19 @@ pub(crate) fn start_logic_thread(
 
                 //window event handling
                 for (event, id) in window_events {
+                    let mut consumed = false;
                     if id == local_info.game_info.window.id() {
+                        //handle egui event
+                        consumed = local_info
+                            .egui_state
+                            .on_window_event(&local_info.game_info.window, &event.clone())
+                            .consumed;
+
                         input_handler.window_event(
                             &mut local_info.commands,
                             &mut local_info.game_info,
                             event,
+                            consumed,
                         );
                     } else {
                         input_handler.other_window_event(
@@ -124,6 +151,7 @@ pub(crate) fn start_logic_thread(
                             &mut local_info.game_info,
                             id,
                             event,
+                            consumed,
                         );
                     }
                 }
@@ -148,6 +176,36 @@ pub(crate) fn start_logic_thread(
                 }
             }
 
+            //do gui
+            {
+                let raw_input = local_info
+                    .egui_state
+                    .take_egui_input(&local_info.game_info.window);
+
+                local_info.egui_ctx.begin_pass(raw_input);
+
+                input_handler.gui(
+                    &mut local_info.commands,
+                    &mut local_info.game_info,
+                    local_info.egui_ctx.clone(),
+                );
+
+                let mut output = local_info.egui_ctx.end_pass();
+
+                local_info
+                    .egui_state
+                    .handle_platform_output(&local_info.game_info.window, output.platform_output.clone());
+
+                let mut shared = shared_render_info_thread.lock().unwrap();
+
+                if shared.egui_output.is_some() {
+                    let moved = shared.egui_output.take().unwrap();
+                    output.textures_delta.append(moved.textures_delta);
+                }
+
+                shared.egui_output = Some(output);
+            }
+
             //check if it should despawn
             {
                 if shared_logic_info_thread.lock().unwrap().should_despawn {
@@ -163,8 +221,8 @@ pub(crate) fn start_logic_thread(
             //push commands to render thread
             let mut last_sleep = 20;
             'coms: loop {
-                let len = {shared_render_info_thread.lock().unwrap().commands.len()};//this is so the shared info doesnt get blocke while waiting
-                if  len >= local_info.game_info.max_queue_size {
+                let len = { shared_render_info_thread.lock().unwrap().commands.len() }; //this is so the shared info doesnt get blocke while waiting
+                if len >= local_info.game_info.max_queue_size {
                     sleep(Duration::from_millis(last_sleep));
                     last_sleep = min(last_sleep * 2, 500);
                 } else {

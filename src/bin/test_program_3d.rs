@@ -1,5 +1,6 @@
 use std::{thread, time::Duration};
 
+use egui::Window;
 use nalgebra::Vector3;
 use niels1020_graphics_engine::{
     common::{
@@ -39,6 +40,7 @@ impl InputHandler for Input {
         commands: &mut Commands,
         game_info: &mut GameInfo,
         event: winit::event::WindowEvent,
+        _consumed: bool,
     ) {
         match event {
             WindowEvent::CloseRequested => {
@@ -77,8 +79,7 @@ impl InputHandler for Input {
     fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, _delta: f64) {
         commands.modify_render_layer(game_info.window_id, 0, |layer| {
             match layer_as_type_mut::<RenderLayer3D>(layer) {
-                Some(_) => 
-                    thread::sleep(Duration::from_millis(1)),
+                Some(_) => thread::sleep(Duration::from_millis(1)),
                 //very difficult calculations
                 None => {}
             }
@@ -120,6 +121,10 @@ impl InputHandler for Input {
         _request: Request,
     ) {
         todo!();
+    }
+
+    fn gui(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, ctx: egui::Context) {
+        Window::new("test").show(&ctx, |ui| {ui.label("test")});
     }
 }
 

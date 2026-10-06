@@ -1,3 +1,4 @@
+use egui::Window;
 use niels1020_graphics_engine::{
     logic::{
         commands::{Commands, Request},
@@ -29,6 +30,7 @@ impl InputHandler for Input {
         commands: &mut Commands,
         game_info: &mut GameInfo,
         event: winit::event::WindowEvent,
+        _consumed: bool,
     ) {
         match event {
             WindowEvent::CloseRequested => {
@@ -120,6 +122,10 @@ impl InputHandler for Input {
                 }
             }
         }
+    }
+
+    fn gui(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, ctx: egui::Context) {
+        Window::new("test").show(&ctx, |ui| ui.label("test"));
     }
 }
 

@@ -11,7 +11,7 @@ use winit::window::{Window, WindowId};
 use crate::{
     common::{CLEAR_COLOR, DEPTH_CLEAR_VALUE, MAX_FRAME_LATENCY},
     logic::game_window::SceneTree,
-    render::utils::{global::RendererGlobal, texture::Texture},
+    render::utils::{egui_ui::UI, global::RendererGlobal, texture::Texture},
 };
 
 pub struct Renderer {
@@ -19,7 +19,8 @@ pub struct Renderer {
     is_surface_configured: bool,
     pub(crate) window_res: [u32; 2],
     surface: Surface<'static>,
-    pub(crate) window_id: WindowId
+    pub(crate) window_id: WindowId,
+    pub ui: UI,
 }
 
 impl Renderer {
@@ -90,20 +91,23 @@ impl Renderer {
 
         println!("done renderer init");
 
-            Self {
-                global: RendererGlobal {
-                    depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
-                    device,
-                    config,
-                    queue,
-                    font_system: FontSystem::new(),
-                    text_swash_cache: SwashCache::new(),
-                },
-                is_surface_configured: true,
-                window_res: [size.width, size.height],
-                surface,
-                window_id: window.id(),
-            }
+        let global = RendererGlobal {
+            depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
+            device,
+            config,
+            queue,
+            font_system: FontSystem::new(),
+            text_swash_cache: SwashCache::new(),
+        };
+
+        Self {
+            window_id: window.id(),
+            ui: UI::new(window, &global),
+            global,
+            is_surface_configured: true,
+            window_res: [size.width, size.height],
+            surface,
+        }
     }
 
     pub fn render(&mut self, scene_tree: &mut SceneTree) {
@@ -123,9 +127,10 @@ impl Renderer {
                         label: Some("wgpu_game_engine render encoder"),
                     });
 
+            self.ui.pre_render(&self.global, &mut encoder);
             //render pass
             {
-                let mut render_pass: wgpu::RenderPass<'_> =
+                let render_pass: wgpu::RenderPass<'_> =
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -149,8 +154,10 @@ impl Renderer {
                         timestamp_writes: None,
                         multiview_mask: None,
                     });
-
+                
+                let mut render_pass = render_pass.forget_lifetime();
                 self.render_tree(scene_tree, &mut render_pass);
+                self.ui.render_pass(&self.global, &mut render_pass);
             }
 
             // submit will accept anything that implements IntoIter

@@ -66,10 +66,11 @@ impl GameWindow {
         );
 
         let renderer = pollster::block_on(Renderer::new(window.clone()));
+        let gui_ctx = renderer.ui.ctx.clone();
         self.renderer = Some(renderer);
 
         let (shared_logic_info, shared_render_info) =
-            start_logic_thread(window, self.input_handler.take().unwrap());
+            start_logic_thread(window, self.input_handler.take().unwrap(),gui_ctx);
 
         self.window_id = shared_render_info.lock().unwrap().window_id;
 
@@ -100,11 +101,12 @@ impl GameWindow {
                 match event {
                     WindowEvent::Resized(size) => renderer.resize(size.width, size.height),
                     WindowEvent::RedrawRequested => {
-                        let shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
+                        let mut shared = self.shared_render_info.as_ref().unwrap().lock().unwrap();
                         let now = Instant::now();
                         if (now - self.last_render)
                             >= Duration::from_secs_f64(1.0 / shared.refresh_rate as f64)
                         {
+                            renderer.ui.output = shared.egui_output.take();
                             self.last_render = now;
                             renderer.render(&mut self.scene_tree);
                         }
@@ -153,6 +155,7 @@ pub trait InputHandler: Send {
         commands: &mut Commands,
         game_info: &mut GameInfo,
         event: WindowEvent,
+        consumed: bool,
     );
     fn other_window_event(
         &mut self,
@@ -160,6 +163,7 @@ pub trait InputHandler: Send {
         _game_info: &mut GameInfo,
         _window_id: WindowId,
         _event: WindowEvent,
+        _consumed: bool,
     ) {
     }
     fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, delta: f64);
@@ -183,6 +187,8 @@ pub trait InputHandler: Send {
         _device_id: DeviceId,
     ) {
     }
+
+    fn gui(&mut self, commands: &mut Commands, game_info: &mut GameInfo, ctx: egui::Context);
 }
 
 pub struct GameInfo {
