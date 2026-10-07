@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, Perspective3, Point3, Vector3};
+use nalgebra::{Matrix4, Perspective3, Vector3};
 
 use crate::common::{
     CAMERA_FAR_PLANE, CAMERA_FOV, CAMERA_NEAR_PLANE, DEFAULT_CAMERA_EYE, DEFAULT_CAMERA_TARGET,

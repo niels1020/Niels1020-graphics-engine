@@ -1,5 +1,5 @@
 use bytemuck::NoUninit;
-use nalgebra::{Point3, Vector3};
+use nalgebra::Vector3;
 
 // ============================================================================
 // Constants
