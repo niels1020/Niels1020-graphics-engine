@@ -14,8 +14,8 @@ pub const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
 
 #[derive(Clone, Debug)]
 pub struct Camera3D {
-    pub eye: Point3<f32>,
-    pub target: Point3<f32>,
+    pub eye: Vector3<f32>,
+    pub target: Vector3<f32>,
     pub up: Vector3<f32>,
     pub aspect: f32,
     pub fovy: f32,
@@ -26,9 +26,9 @@ pub struct Camera3D {
 impl Default for Camera3D {
     fn default() -> Self {
         Self {
-            eye: DEFAULT_CAMERA_EYE.into(),
+            eye: DEFAULT_CAMERA_EYE,
             // Point camera at the origin
-            target: DEFAULT_CAMERA_TARGET.into(),
+            target: DEFAULT_CAMERA_TARGET,
             // Define which direction is "up"
             up: Vector3::new(0.0, 1.0, 0.0),
             aspect: 16.0 / 9.0,
@@ -59,7 +59,7 @@ impl Camera3DUniform {
 
 impl Camera3D {
     pub fn build_view_projection_matrix(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_at_rh(&self.eye, &self.target, &self.up);
+        let view = Matrix4::look_at_rh(&self.eye.into(), &self.target.into(), &self.up);
         let proj = Perspective3::new(self.fovy.to_radians(), self.aspect, self.znear, self.zfar)
             .to_homogeneous();
         OPENGL_TO_WGPU_MATRIX * proj * view

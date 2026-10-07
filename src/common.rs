@@ -1,5 +1,5 @@
 use bytemuck::NoUninit;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 
 // ============================================================================
 // Constants
@@ -20,10 +20,10 @@ pub const DEPTH_CLEAR_VALUE: f32 = 1.0;
 pub const MAX_FRAME_LATENCY: u32 = 2;
 
 /// Default camera position (units: 1 up, 2 back from origin)
-pub const DEFAULT_CAMERA_EYE: Point3<f32> = Point3::new(0.0, 0.0, 0.0);
+pub const DEFAULT_CAMERA_EYE: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
 
 /// Default point the camera looks at
-pub const DEFAULT_CAMERA_TARGET: Point3<f32> = Point3::new(1.0, 0.0, 0.0);
+pub const DEFAULT_CAMERA_TARGET: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
 
 /// Camera field of view in degrees
 pub const CAMERA_FOV: f32 = 90.0;
