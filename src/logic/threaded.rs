@@ -41,7 +41,7 @@ pub(crate) struct RenderInfo {
     pub refresh_rate: usize,
     pub window_id: WindowId,
     pub egui_output: Option<FullOutput>,
-}
+    }
 pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
@@ -85,6 +85,8 @@ pub(crate) fn start_logic_thread(
         };
 
         input_handler.start(&mut local_info.commands, &mut local_info.game_info);
+
+        let mut last_sleep = 20;
 
         let mut last_update = Instant::now();
         let mut last_redraw = Instant::now();
@@ -219,13 +221,13 @@ pub(crate) fn start_logic_thread(
             }
 
             //push commands to render thread
-            let mut last_sleep = 20;
             'coms: loop {
                 let len = { shared_render_info_thread.lock().unwrap().commands.len() }; //this is so the shared info doesnt get blocke while waiting
                 if len >= local_info.game_info.max_queue_size {
                     sleep(Duration::from_millis(last_sleep));
                     last_sleep = min(last_sleep * 2, 500);
                 } else {
+                    last_sleep = last_sleep / 2;
                     let mut shared = shared_render_info_thread.lock().unwrap();
                     shared.commands.append(&mut local_info.commands);
                     shared.refresh_rate = local_info.game_info.refresh_rate;
