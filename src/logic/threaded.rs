@@ -41,7 +41,7 @@ pub(crate) struct RenderInfo {
     pub refresh_rate: usize,
     pub window_id: WindowId,
     pub egui_output: Option<FullOutput>,
-    }
+}
 pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
@@ -194,9 +194,10 @@ pub(crate) fn start_logic_thread(
 
                 let mut output = local_info.egui_ctx.end_pass();
 
-                local_info
-                    .egui_state
-                    .handle_platform_output(&local_info.game_info.window, output.platform_output.clone());
+                local_info.egui_state.handle_platform_output(
+                    &local_info.game_info.window,
+                    output.platform_output.clone(),
+                );
 
                 let mut shared = shared_render_info_thread.lock().unwrap();
 
@@ -221,18 +222,21 @@ pub(crate) fn start_logic_thread(
             }
 
             //push commands to render thread
-            'coms: loop {
-                let len = { shared_render_info_thread.lock().unwrap().commands.len() }; //this is so the shared info doesnt get blocke while waiting
-                if len >= local_info.game_info.max_queue_size {
-                    sleep(Duration::from_millis(last_sleep));
-                    last_sleep = min(last_sleep * 2, 500);
-                } else {
+            //waits untill the render_thread is not overworcked before redoing loop
+            let mut len = shared_render_info_thread.lock().unwrap().commands.len(); //this is so the shared info doesnt get blocked while waiting
+            let mut pushed = false;
+            while len >= local_info.game_info.max_queue_size || !pushed {
+                if len < local_info.game_info.max_queue_size && !pushed {
                     last_sleep = last_sleep / 2;
                     let mut shared = shared_render_info_thread.lock().unwrap();
                     shared.commands.append(&mut local_info.commands);
                     shared.refresh_rate = local_info.game_info.refresh_rate;
-                    break 'coms;
+                    pushed = true;
+                } else {
+                    sleep(Duration::from_millis(last_sleep));
+                    last_sleep = min(last_sleep * 2, 500);
                 }
+                len = shared_render_info_thread.lock().unwrap().commands.len();
             }
         }
     });
