@@ -8,7 +8,7 @@ use niels1020_graphics_engine::{
         DEFAULT_CAMERA_TARGET,
     },
     logic::{
-        commands::{Commands, Request},
+        commands::{GlobalComands, Request},
         game_window::{GameInfo, InputHandler},
     },
     render::{
@@ -37,7 +37,7 @@ struct Input {
 impl InputHandler for Input {
     fn window_event(
         &mut self,
-        commands: &mut Commands,
+        commands: GlobalComands,
         game_info: &mut GameInfo,
         event: winit::event::WindowEvent,
         _consumed: bool,
@@ -76,17 +76,16 @@ impl InputHandler for Input {
         }
     }
 
-    fn update(&mut self, commands: &mut Commands, game_info: &mut GameInfo, _delta: f64) {
+    fn update(&mut self, commands: GlobalComands, game_info: &mut GameInfo, _delta: f64) {
         commands.modify_render_layer(game_info.window_id, 0, |layer| {
             match layer_as_type_mut::<RenderLayer3D>(layer) {
-                Some(_) => thread::sleep(Duration::from_millis(1)),
-                //very difficult calculations
+                Some(_) => thread::sleep(Duration::from_millis(1)), //very difficult calculations will slow down renderer as it block rerndering to modify a layer
                 None => {}
             }
         });
     }
 
-    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
+    fn start(&mut self, commands: GlobalComands, game_info: &mut GameInfo) {
         let mut layer1 = RenderLayer3D::new(
             None,
             "test 3D".to_string(),
@@ -112,18 +111,18 @@ impl InputHandler for Input {
         commands.add_render_layer(game_info.window_id, layer1);
     }
 
-    fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {}
+    fn exit(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo) {}
 
     fn receive_request(
         &mut self,
-        _commands: &mut Commands,
+        _commands: GlobalComands,
         _game_info: &mut GameInfo,
         _request: Request,
     ) {
         todo!();
     }
 
-    fn gui(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, ctx: egui::Context) {
+    fn gui(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo, ctx: egui::Context) {
         Window::new("test").show(&ctx, |ui| {ui.label("test")});
     }
 }

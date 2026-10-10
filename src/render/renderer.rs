@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use cosmic_text::{FontSystem, SwashCache};
+use egui::Context;
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
     RenderPass, Surface, TextureUsages, TextureViewDescriptor,
@@ -24,7 +25,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(window: Arc<Window>) -> Self {
+    pub async fn new(window: Arc<Window>, egui_ctx: Context) -> Self {
         let size = window.inner_size();
 
         let instance = Instance::new(InstanceDescriptor {
@@ -102,7 +103,7 @@ impl Renderer {
 
         Self {
             window_id: window.id(),
-            ui: UI::new(window, &global),
+            ui: UI::new(window, &global, egui_ctx),
             global,
             is_surface_configured: true,
             window_res: [size.width, size.height],
@@ -154,7 +155,7 @@ impl Renderer {
                         timestamp_writes: None,
                         multiview_mask: None,
                     });
-                
+
                 let mut render_pass = render_pass.forget_lifetime();
                 self.render_tree(scene_tree, &mut render_pass);
                 self.ui.render_pass(&self.global, &mut render_pass);

@@ -1,20 +1,16 @@
 use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-    thread::{self, sleep},
-    time::{Duration, Instant},
+    collections::VecDeque, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant},
 };
 
 use egui::{Context, FullOutput};
 use egui_winit::State;
-use nalgebra::min;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
     window::{Window, WindowId},
 };
 
 use crate::logic::{
-    commands::{Commands, Request},
+    commands::GlobalComands,
     game_window::{GameInfo, InputHandler},
 };
 
@@ -23,36 +19,29 @@ pub(crate) struct LogicInfo {
     pub window_events: VecDeque<(WindowEvent, WindowId)>,
     pub device_events: VecDeque<(DeviceEvent, DeviceId)>,
     pub should_despawn: bool,
-    pub requests: Vec<Request>,
 }
 pub(crate) type SharedLogicInfo = Arc<Mutex<LogicInfo>>;
 
 ///some data gets copied to the render thread later
 pub(crate) struct LocalInfo {
     pub game_info: GameInfo,
-    pub commands: Commands,
     pub egui_ctx: Context,
     pub egui_state: State,
 }
 
 ///data gets copied here from localinfo at the end of a logic iteration
 pub(crate) struct RenderInfo {
-    pub commands: Commands,
-    pub refresh_rate: usize,
-    pub window_id: WindowId,
     pub egui_output: Option<FullOutput>,
 }
 pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
+    commands: GlobalComands,
     window: Arc<Window>,
     input_handler: Box<dyn InputHandler + Send>,
     gui_ctx: Context,
 ) -> (SharedLogicInfo, SharedRenderInfo) {
     let shared_render_info = Arc::new(Mutex::new(RenderInfo {
-        commands: Commands::new(),
-        refresh_rate: 1,
-        window_id: window.clone().id(),
         egui_output: None,
     }));
     let shared_render_info_thread = shared_render_info.clone();
@@ -61,7 +50,6 @@ pub(crate) fn start_logic_thread(
         window_events: VecDeque::new(),
         device_events: VecDeque::new(),
         should_despawn: false,
-        requests: vec![],
     }));
     let shared_logic_info_thread = shared_logic_info.clone();
 
@@ -79,17 +67,15 @@ pub(crate) fn start_logic_thread(
                     None,
                 ),
                 game_info: GameInfo::new(window),
-                commands: Commands::new(),
                 egui_ctx: gui_ctx,
             }
         };
 
-        input_handler.start(&mut local_info.commands, &mut local_info.game_info);
+        input_handler.start(commands.clone(), &mut local_info.game_info);
 
         let mut last_sleep = 20;
 
         let mut last_update = Instant::now();
-        let mut last_redraw = Instant::now();
         'game: loop {
             //render and update
             {
@@ -97,21 +83,9 @@ pub(crate) fn start_logic_thread(
 
                 let delta = (now - last_update).as_secs_f64();
 
-                input_handler.update(&mut local_info.commands, &mut local_info.game_info, delta);
-                #[allow(unused_assignments)]
-                {
-                    last_update = now;
-                }
+                input_handler.update(commands.clone(), &mut local_info.game_info, delta);
 
-                let should_redraw = (now - last_redraw)
-                    >= Duration::from_secs_f64(1.0 / local_info.game_info.refresh_rate as f64);
-                if should_redraw {
-                    #[allow(unused_assignments)]
-                    {
-                        last_redraw = now;
-                    }
-                    local_info.game_info.window.request_redraw();
-                }
+                last_update = now;
             }
 
             //event handling
@@ -127,12 +101,20 @@ pub(crate) fn start_logic_thread(
                             .device_events
                             .drain(..)
                             .collect::<VecDeque<(DeviceEvent, DeviceId)>>(),
-                        shared.requests.drain(..).collect::<VecDeque<Request>>(),
+                        commands
+                            .get_requests(local_info.game_info.window_id)
+                            .unwrap_or_default(),
                     )
                 };
 
                 //window event handling
                 for (event, id) in window_events {
+
+                    match event.clone() {
+                        WindowEvent::Resized(new_size) => commands.resize(local_info.game_info.window_id, new_size.into()),
+                        _ => {}
+                    }                    
+
                     let mut consumed = false;
                     if id == local_info.game_info.window.id() {
                         //handle egui event
@@ -142,14 +124,14 @@ pub(crate) fn start_logic_thread(
                             .consumed;
 
                         input_handler.window_event(
-                            &mut local_info.commands,
+                            commands.clone(),
                             &mut local_info.game_info,
                             event,
                             consumed,
                         );
                     } else {
                         input_handler.other_window_event(
-                            &mut local_info.commands,
+                            commands.clone(),
                             &mut local_info.game_info,
                             id,
                             event,
@@ -161,7 +143,7 @@ pub(crate) fn start_logic_thread(
                 //device event handling
                 for (event, id) in device_events {
                     input_handler.device_event(
-                        &mut local_info.commands,
+                        commands.clone(),
                         &mut local_info.game_info,
                         event,
                         id,
@@ -171,7 +153,7 @@ pub(crate) fn start_logic_thread(
                 //delivering requests
                 for request in requests {
                     input_handler.receive_request(
-                        &mut local_info.commands,
+                        commands.clone(),
                         &mut local_info.game_info,
                         request,
                     );
@@ -187,7 +169,7 @@ pub(crate) fn start_logic_thread(
                 local_info.egui_ctx.begin_pass(raw_input);
 
                 input_handler.gui(
-                    &mut local_info.commands,
+                    commands.clone(),
                     &mut local_info.game_info,
                     local_info.egui_ctx.clone(),
                 );
@@ -212,31 +194,22 @@ pub(crate) fn start_logic_thread(
             //check if it should despawn
             {
                 if shared_logic_info_thread.lock().unwrap().should_despawn {
-                    input_handler.exit(&mut local_info.commands, &mut local_info.game_info);
-
-                    let mut shared = shared_render_info_thread.lock().unwrap();
-                    shared.commands.append(&mut local_info.commands);
+                    input_handler.exit(commands.clone(), &mut local_info.game_info);
 
                     break 'game;
                 }
             }
 
-            //push commands to render thread
-            //waits untill the render_thread is not overworcked before redoing loop
-            let mut len = shared_render_info_thread.lock().unwrap().commands.len(); //this is so the shared info doesnt get blocked while waiting
-            let mut pushed = false;
-            while len >= local_info.game_info.max_queue_size || !pushed {
-                if len < local_info.game_info.max_queue_size && !pushed {
-                    last_sleep = last_sleep / 2;
-                    let mut shared = shared_render_info_thread.lock().unwrap();
-                    shared.commands.append(&mut local_info.commands);
-                    shared.refresh_rate = local_info.game_info.refresh_rate;
-                    pushed = true;
-                } else {
-                    sleep(Duration::from_millis(last_sleep));
-                    last_sleep = min(last_sleep * 2, 500);
-                }
-                len = shared_render_info_thread.lock().unwrap().commands.len();
+
+            //dont overwork other threads
+            let mut slept = false;
+            while commands.render_len(local_info.game_info.window_id) > local_info.game_info.max_queue_size {
+                sleep(Duration::from_millis(last_sleep));
+                last_sleep = last_sleep * 2;
+                slept = true;
+            }
+            if !slept {
+                last_sleep = last_sleep / 2;
             }
         }
     });

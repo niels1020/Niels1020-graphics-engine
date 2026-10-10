@@ -3,13 +3,12 @@ use winit::{
 };
 
 use crate::logic::{
-    commands::{Commands, run_command},
-    game_window::{GameWindow, InputHandler},
+    commands::{GlobalComands, run_logic_command}, game_window::{GameWindow, InputHandler},
 };
 
 pub struct Engine {
     pub(crate) windows: Vec<GameWindow>,
-    pub(crate) commands: Commands,
+    pub(crate) commands: GlobalComands,
 }
 
 impl Engine {
@@ -19,14 +18,16 @@ impl Engine {
     ) -> Self {
         Self {
             windows: vec![GameWindow::new(main_input_handler, window_attributes)],
-            commands: Commands::new(),
+            commands: GlobalComands::new(),
         }
     }
 
-    fn run_commands(&mut self, event_loop: &ActiveEventLoop) {
-        while !self.commands.queue.is_empty() {
-            let command = self.commands.queue.pop_front().unwrap();
-            run_command(event_loop, self, command);
+    
+    pub fn run_commands(&mut self, event_loop: &ActiveEventLoop) {
+        let mut commands = self.commands.get_logic_commands();
+        while !commands.is_empty() {
+            let cmd = commands.remove(0).unwrap();
+            run_logic_command(event_loop, self, cmd);
         }
     }
 }
@@ -38,38 +39,32 @@ impl ApplicationHandler for Engine {
         self.windows
             .get_mut(len - 1)
             .unwrap()
-            .start(&mut self.commands, event_loop);
-        self.run_commands(event_loop);
+            .start(self.commands.clone(), event_loop);
     }
 
     fn window_event(
         &mut self,
-        event_loop: &ActiveEventLoop,
+        _event_loop: &ActiveEventLoop,
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
         for window in self.windows.iter_mut() {
-            window.window_event(&mut self.commands, window_id, event.clone());
+            window.window_event(window_id, event.clone());
         }
-        self.run_commands(event_loop);
     }
 
     fn device_event(
         &mut self,
-        event_loop: &ActiveEventLoop,
+        _event_loop: &ActiveEventLoop,
         device_id: winit::event::DeviceId,
         event: winit::event::DeviceEvent,
     ) {
         for window in self.windows.iter_mut() {
-            window.device_event(&mut self.commands, event.clone(), device_id);
+            window.device_event(event.clone(), device_id);
         }
-        self.run_commands(event_loop);
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        for window in self.windows.iter_mut() {
-            window.update_commands(&mut self.commands);
-        }
         self.run_commands(event_loop);
     }
 }

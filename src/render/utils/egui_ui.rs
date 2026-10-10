@@ -16,8 +16,7 @@ pub struct UI {
 }
 
 impl UI {
-    pub fn new(window: Arc<Window>, globals: &RendererGlobal) -> Self {
-        let ctx = Context::default();
+    pub fn new(window: Arc<Window>, globals: &RendererGlobal, ctx: Context) -> Self {
         Self {
             renderer: Renderer::new(
                 &globals.device,

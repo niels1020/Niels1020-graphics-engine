@@ -1,7 +1,7 @@
 use egui::Window;
 use niels1020_graphics_engine::{
     logic::{
-        commands::{Commands, Request},
+        commands::{GlobalComands, Request},
         game_window::{GameInfo, InputHandler},
     },
     render::{
@@ -27,7 +27,7 @@ struct Input {
 impl InputHandler for Input {
     fn window_event(
         &mut self,
-        commands: &mut Commands,
+        commands: GlobalComands,
         game_info: &mut GameInfo,
         event: winit::event::WindowEvent,
         _consumed: bool,
@@ -87,9 +87,9 @@ impl InputHandler for Input {
         }
     }
 
-    fn update(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, _delta: f64) {}
+    fn update(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo, _delta: f64) {}
 
-    fn start(&mut self, commands: &mut Commands, game_info: &mut GameInfo) {
+    fn start(&mut self, commands: GlobalComands, game_info: &mut GameInfo) {
         let mut layer1 =
             RenderLayer2D::new(None, "Test 2D".to_string(), Camera2D::new([800.0, 600.0]));
         layer1.add_child(VerticesTest::new());
@@ -104,13 +104,13 @@ impl InputHandler for Input {
         commands.add_render_layer(game_info.window_id, layer1);
     }
 
-    fn exit(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo) {
+    fn exit(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo) {
         println!("exit has been called");
     }
 
     fn receive_request(
         &mut self,
-        _commands: &mut Commands,
+        _commands: GlobalComands,
         _game_info: &mut GameInfo,
         request: Request,
     ) {
@@ -124,7 +124,7 @@ impl InputHandler for Input {
         }
     }
 
-    fn gui(&mut self, _commands: &mut Commands, _game_info: &mut GameInfo, ctx: egui::Context) {
+    fn gui(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo, ctx: egui::Context) {
         Window::new("test").show(&ctx, |ui| ui.label("test"));
     }
 }
