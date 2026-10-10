@@ -119,7 +119,7 @@ impl InputHandler for Input {
         _game_info: &mut GameInfo,
         _request: Request,
     ) {
-        todo!();
+        //do nothing
     }
 
     fn gui(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo, ctx: egui::Context) {
