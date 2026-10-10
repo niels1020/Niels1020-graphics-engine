@@ -238,6 +238,13 @@ impl RenderObject2D for Text {
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }
+
+    fn get_debug_info(&self) -> String {
+        format!(
+            "Text, text: {}, font: {}, scale: {}, glyphs_height: {}, glyphs_width: {}",
+            self.text, self.font_name, self.scale, self.glyphs_height, self.glyphs_width
+        )
+    }
 }
 
 impl Clone for Text {

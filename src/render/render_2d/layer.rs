@@ -39,6 +39,7 @@ pub trait RenderObject2D: Send + Debug {
     fn get_name(&self) -> String;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn clone_box(&self) -> Box<dyn RenderObject2D>;
+    fn get_debug_info(&self) -> String;
 }
 
 impl Clone for Box<dyn RenderObject2D> {
@@ -128,9 +129,24 @@ impl RenderLayer for RenderLayer2D {
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
     }
-    
+
     fn get_name(&self) -> String {
-        String::from("RenderLayer2D")
+        format!("RenderLayer2D: {}", self.name)
+    }
+
+    fn get_debug_info(&self) -> (String, Vec<String>) {
+        (
+            format!(
+                "RenderLayer2D, name: {}, shader: {:?}, has pipeline: {}",
+                self.name,
+                self.shader.label,
+                self.render_pipeline.is_some()
+            ),
+            self.to_render
+                .iter()
+                .map(|child| child.get_debug_info())
+                .collect(),
+        )
     }
 }
 

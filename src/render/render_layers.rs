@@ -12,6 +12,8 @@ pub trait RenderLayer: Send + Any{
     fn clone_box(&self) -> Box<dyn RenderLayer>;
 
     fn get_name(&self) -> String;
+
+    fn get_debug_info(&self) -> (String, Vec<String>);// (self, children)
 }
 
 impl Clone for Box<dyn RenderLayer> {

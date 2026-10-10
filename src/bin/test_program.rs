@@ -184,6 +184,10 @@ impl RenderObject2D for VerticesTest {
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }
+    
+    fn get_debug_info(&self) -> String {
+        format!("vertices test")
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -243,5 +247,9 @@ impl RenderObject2D for TextureTest {
 
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
+    }
+    
+    fn get_debug_info(&self) -> String {
+        format!("vertices test")
     }
 }

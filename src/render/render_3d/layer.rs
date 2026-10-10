@@ -67,6 +67,7 @@ pub trait RenderObject3D: Send + Debug {
     fn get_transform(&self) -> Transform;
     fn has_transform_changed(&self) -> bool;
     fn clone_box(&self) -> Box<dyn RenderObject3D>;
+    fn get_debug_info(&self) -> String;
 }
 
 impl Clone for Box<dyn RenderObject3D> {
@@ -226,9 +227,24 @@ impl RenderLayer for RenderLayer3D {
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
     }
-    
+
     fn get_name(&self) -> String {
-        String::from("RenderLayer3D")
+        format!("renderlayer3D: {}", self.name)
+    }
+
+    fn get_debug_info(&self) -> (String, Vec<String>) {
+        (
+            format!(
+                "RenderLayer3D, name: {}, shader: {:?}, has pipeline: {}",
+                self.name,
+                self.shader.label,
+                self.render_pipeline.is_some()
+            ),
+            self.to_render
+                .iter()
+                .map(|child| child.object.get_debug_info())
+                .collect(),
+        )
     }
 }
 

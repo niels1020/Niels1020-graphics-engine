@@ -180,4 +180,8 @@ impl RenderObject3D for CubeTest {
     fn clone_box(&self) -> Box<dyn RenderObject3D> {
         Box::new(self.clone())
     }
+    
+    fn get_debug_info(&self) -> String {
+        format!("cube test, transform: {:?}", self.transform)
+    }
 }
