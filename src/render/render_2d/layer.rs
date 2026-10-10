@@ -128,6 +128,10 @@ impl RenderLayer for RenderLayer2D {
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
     }
+    
+    fn get_name(&self) -> String {
+        String::from("RenderLayer2D")
+    }
 }
 
 impl Clone for RenderLayer2D {

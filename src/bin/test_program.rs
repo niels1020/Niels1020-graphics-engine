@@ -121,6 +121,9 @@ impl InputHandler for Input {
                     println!("render_layer status: {:#?}", object);
                 }
             }
+            Request::LayerAddedAtIndex(name, index) => {
+                println!("layer {} added at {}", name, index)
+            }
         }
     }
 

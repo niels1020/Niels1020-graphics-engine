@@ -24,7 +24,7 @@ pub(crate) enum LogicCommand {
     NewWindow(Box<dyn InputHandler>, WindowAttributes),
 }
 pub(crate) enum RenderCommand {
-    AddRenderLayer(Box<dyn RenderLayer>),
+    AddRenderLayer(Box<dyn RenderLayer>, WindowId),
     RemoveRenderLayer(usize),
     GetRenderLayerClone(usize, WindowId), //second window id is target to deliver the clone
     ModifyRenderLayer(usize, Box<dyn FnOnce(&mut Box<dyn RenderLayer>) + Send>),
@@ -34,6 +34,7 @@ pub(crate) enum RenderCommand {
 
 pub enum Request {
     RenderLayerClone(Box<dyn RenderLayer>),
+    LayerAddedAtIndex(String, usize)
 }
 
 struct Commands {
@@ -99,10 +100,10 @@ impl Commands {
 
     fn add_render_layer(&mut self, window_id: WindowId, layer: Box<dyn RenderLayer>) {
         match self.render_queues.get_mut(&window_id) {
-            Some(queue) => queue.push_back(RenderCommand::AddRenderLayer(layer)),
+            Some(queue) => queue.push_back(RenderCommand::AddRenderLayer(layer, window_id)),
             None => {
                 let mut vecd = VecDeque::new();
-                vecd.push_back(RenderCommand::AddRenderLayer(layer));
+                vecd.push_back(RenderCommand::AddRenderLayer(layer, window_id));
                 self.render_queues.insert(window_id, vecd);
             }
         }

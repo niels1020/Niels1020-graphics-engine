@@ -10,6 +10,8 @@ pub trait RenderLayer: Send + Any{
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
     fn clone_box(&self) -> Box<dyn RenderLayer>;
+
+    fn get_name(&self) -> String;
 }
 
 impl Clone for Box<dyn RenderLayer> {

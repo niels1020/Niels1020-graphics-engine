@@ -226,6 +226,10 @@ impl RenderLayer for RenderLayer3D {
     fn clone_box(&self) -> Box<dyn RenderLayer> {
         Box::new(self.clone())
     }
+    
+    fn get_name(&self) -> String {
+        String::from("RenderLayer3D")
+    }
 }
 
 impl RenderLayer3D {
