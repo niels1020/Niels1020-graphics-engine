@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-
-use egui::Window;
+use egui::{CollapsingHeader, FontDefinitions, Window};
 use winit::{
     event::WindowEvent::CloseRequested,
     window::{WindowAttributes, WindowId},
@@ -96,6 +95,26 @@ impl InputHandler for DebugWindow {
         _game_info: &mut crate::logic::game_window::GameInfo,
         ctx: egui::Context,
     ) {
-        Window::new("layer debug").show(&ctx, |ui| ui.label(format!("{:?}", self.debug_info.keys())));
+        Window::new("layer debug").show(&ctx, |ui| {
+            ui.label("Hello, world!");
+            ui.label("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+            ui.label("The quick brown fox jumps over the lazy dog.");
+
+            for (_, (info, children)) in self.debug_info.iter() {
+                ui.collapsing(info.as_str(), |ui| {
+                    for info in children.iter() {
+                        ui.label(info.as_str());
+                    }
+                });
+            }
+            /*for (_, (info, children_info)) in self.debug_info.iter_mut() {
+                CollapsingHeader::new(info.as_str()).show(ui, |ui| {
+                    for info in children_info {
+                        ui.label("wtf");
+                        ui.label(info.as_str());
+                    }
+                });
+            }*/
+        });
     }
 }

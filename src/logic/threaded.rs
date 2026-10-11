@@ -111,6 +111,7 @@ pub(crate) fn start_logic_thread(
                 //window event handling
                 for (event, id) in window_events {
                     match event.clone() {
+                        //FIXME: also resizing other windows
                         WindowEvent::Resized(new_size) => {
                             commands.resize(local_info.game_info.window_id, new_size.into())
                         }
@@ -176,7 +177,7 @@ pub(crate) fn start_logic_thread(
                     local_info.egui_ctx.clone(),
                 );
 
-                let mut output = local_info.egui_ctx.end_pass();
+                let output = local_info.egui_ctx.end_pass();
 
                 local_info.egui_state.handle_platform_output(
                     &local_info.game_info.window,
@@ -186,11 +187,10 @@ pub(crate) fn start_logic_thread(
                 let mut shared = shared_render_info_thread.lock().unwrap();
 
                 if shared.egui_output.is_some() {
-                    let moved = shared.egui_output.take().unwrap();
-                    output.textures_delta.append(moved.textures_delta);
+                    shared.egui_output.as_mut().unwrap().append(output);
+                } else {
+                    shared.egui_output = Some(output);
                 }
-
-                shared.egui_output = Some(output);
             }
 
             //check if it should despawn
