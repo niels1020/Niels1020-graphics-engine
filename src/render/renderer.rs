@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use cosmic_text::{FontSystem, SwashCache};
 use egui::Context;
+use log::info;
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
     RenderPass, Surface, TextureUsages, TextureViewDescriptor,
@@ -90,7 +91,7 @@ impl Renderer {
 
         surface.configure(&device, &config);
 
-        println!("done renderer init");
+        info!("done renderer init");
 
         let global = RendererGlobal {
             depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
@@ -113,7 +114,7 @@ impl Renderer {
 
     pub fn render(&mut self, scene_tree: &mut SceneTree) {
         if !self.is_surface_configured {
-            println!("surface not configured");
+            info!("surface not configured");
             return;
         }
         if let CurrentSurfaceTexture::Success(output) = self.surface.get_current_texture() {

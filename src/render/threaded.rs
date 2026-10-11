@@ -1,5 +1,7 @@
 use std::thread;
 
+use log::info;
+
 use crate::{
     logic::{
         commands::{GlobalComands, Request},
@@ -87,6 +89,6 @@ pub(crate) fn start_render_thread(
             renderer.ui.output = shared.lock().unwrap().egui_output.take();
             renderer.render(&mut scene_tree);
         }
-        println!("render thread exit")
+        info!("render thread exit")
     });
 }

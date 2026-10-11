@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use log::info;
 use winit::{
     event_loop::ActiveEventLoop,
     window::{WindowAttributes, WindowId},
@@ -296,7 +297,7 @@ pub(crate) fn run_logic_command(
                 }
             });
             if game.windows.is_empty() {
-                println!("No windows open: Exiting");
+                info!("No windows open: Exiting");
                 event_loop.exit();
             }
         }

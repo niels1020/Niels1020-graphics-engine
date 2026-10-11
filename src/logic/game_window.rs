@@ -3,6 +3,7 @@ use std::{
 };
 
 use egui::Context;
+use log::info;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
     event_loop::ActiveEventLoop,
@@ -75,6 +76,8 @@ impl GameWindow {
         );
 
         self.shared_logic_info = Some(shared_logic_info);
+
+        info!("window started")
     }
 
     pub fn window_event(&mut self, window_id: WindowId, event: WindowEvent) {

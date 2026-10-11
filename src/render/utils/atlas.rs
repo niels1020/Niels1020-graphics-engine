@@ -1,4 +1,5 @@
 use image::{DynamicImage, GenericImage};
+use log::info;
 use rect_packer::{Config, Packer};
 use std::collections::HashMap;
 use wgpu::{
@@ -91,7 +92,7 @@ impl AtlasTexture {
                 self.images.push(img);
                 return id;
             } else {
-                println!("texture atlass to small expanding");
+                info!("texture atlass to small expanding");
                 self.config = Config {
                     height: self.config.height * 2,
                     width: self.config.width * 2,

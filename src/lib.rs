@@ -1,3 +1,4 @@
+use log::info;
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 pub mod common;
@@ -10,6 +11,7 @@ pub use winit;
 pub use image::load_from_memory;
 pub use nalgebra;
 pub use egui;
+pub use log;
 
 use crate::logic::{engine::Engine, game_window::InputHandler};
 
@@ -17,9 +19,11 @@ pub fn start_engine(
     main_input_handler: Box<dyn InputHandler + Send>,
     window_attributes: WindowAttributes,
 ) {
+    egui_logger::builder().init().unwrap();
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = Engine::new(main_input_handler, window_attributes);
 
     event_loop.run_app(&mut app).unwrap();
+    info!("exit");
 }

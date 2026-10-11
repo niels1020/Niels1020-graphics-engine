@@ -1,4 +1,6 @@
+#![windows_subsystem = "windows"]
 use egui::Window;
+use log::info;
 use niels1020_graphics_engine::{
     logic::{
         commands::{GlobalComands, Request},
@@ -53,7 +55,7 @@ impl InputHandler for Input {
                             commands.new_window(Box::new(Input::new()), WindowAttributes::default())
                         }
                         KeyCode::Tab => {
-                            println!("requesting");
+                            info!("requesting");
                             commands.get_render_layer_clone(
                                 game_info.window_id,
                                 0,
@@ -110,7 +112,7 @@ impl InputHandler for Input {
     }
 
     fn exit(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo) {
-        println!("exit has been called");
+        info!("exit has been called");
     }
 
     fn receive_request(
@@ -123,11 +125,11 @@ impl InputHandler for Input {
             Request::RenderLayerClone(render_layer, _index, _id) => {
                 if let Some(layer) = layer_as_type::<RenderLayer2D>(render_layer) {
                     let object = layer.get_child("TEXTURE TEST".to_string());
-                    println!("render_layer status: {:#?}", object);
+                    info!("render_layer status: {:#?}", object);
                 }
             }
             Request::LayerAddedAtIndex(name, index, _id) => {
-                println!("layer {} added at {}", name, index)
+                info!("layer {} added at {}", name, index)
             }
             _ => {}
         }

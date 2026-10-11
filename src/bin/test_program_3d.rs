@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use std::{thread, time::Duration};
 
 use egui::Window;
@@ -123,7 +124,7 @@ impl InputHandler for Input {
     }
 
     fn gui(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo, ctx: egui::Context) {
-        Window::new("test").show(&ctx, |ui| {ui.label("test")});
+        Window::new("test").show(&ctx, |ui| ui.label("test"));
     }
 }
 
@@ -180,7 +181,7 @@ impl RenderObject3D for CubeTest {
     fn clone_box(&self) -> Box<dyn RenderObject3D> {
         Box::new(self.clone())
     }
-    
+
     fn get_debug_info(&self) -> String {
         format!("cube test, transform: {:?}", self.transform)
     }

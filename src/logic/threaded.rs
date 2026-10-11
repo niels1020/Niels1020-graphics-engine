@@ -7,6 +7,7 @@ use std::{
 
 use egui::{Context, FullOutput};
 use egui_winit::State;
+use log::info;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
     window::{Window, WindowId},
@@ -212,7 +213,7 @@ pub(crate) fn start_logic_thread(
             }
             last_sleep = last_sleep / 2;
         }
-        println!("logic thread exit")
+        info!("logic thread exit")
     });
 
     (shared_logic_info, shared_render_info)

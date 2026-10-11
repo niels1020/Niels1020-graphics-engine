@@ -1,3 +1,1 @@
-implement formatter for certain types so we dont need Debug trait
-add simple logging
 better error handling

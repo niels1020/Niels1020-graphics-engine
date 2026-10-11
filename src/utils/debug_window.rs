@@ -98,7 +98,7 @@ impl InputHandler for DebugWindow {
         _game_info: &mut crate::logic::game_window::GameInfo,
         ctx: egui::Context,
     ) {
-        Window::new("layer debug").show(&ctx, |ui| {
+        Window::new("layer debug").default_open(false).show(&ctx, |ui| {
             for (_, (info, children)) in self.debug_info.iter() {
                 ui.collapsing(info.as_str(), |ui| {
                     for info in children.iter() {
@@ -106,6 +106,10 @@ impl InputHandler for DebugWindow {
                     }
                 });
             }
+        });
+
+        Window::new("console").default_open(false).show(&ctx, |ui| {
+            egui_logger::logger_ui().show(ui);
         });
     }
 }
