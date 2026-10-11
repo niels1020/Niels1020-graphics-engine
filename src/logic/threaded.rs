@@ -1,5 +1,8 @@
 use std::{
-    collections::VecDeque, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant},
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+    thread::{self, sleep},
+    time::{Duration, Instant},
 };
 
 use egui::{Context, FullOutput};
@@ -41,9 +44,7 @@ pub(crate) fn start_logic_thread(
     input_handler: Box<dyn InputHandler + Send>,
     gui_ctx: Context,
 ) -> (SharedLogicInfo, SharedRenderInfo) {
-    let shared_render_info = Arc::new(Mutex::new(RenderInfo {
-        egui_output: None,
-    }));
+    let shared_render_info = Arc::new(Mutex::new(RenderInfo { egui_output: None }));
     let shared_render_info_thread = shared_render_info.clone();
 
     let shared_logic_info = Arc::new(Mutex::new(LogicInfo {
@@ -109,11 +110,12 @@ pub(crate) fn start_logic_thread(
 
                 //window event handling
                 for (event, id) in window_events {
-
                     match event.clone() {
-                        WindowEvent::Resized(new_size) => commands.resize(local_info.game_info.window_id, new_size.into()),
+                        WindowEvent::Resized(new_size) => {
+                            commands.resize(local_info.game_info.window_id, new_size.into())
+                        }
                         _ => {}
-                    }                    
+                    }
 
                     let mut consumed = false;
                     if id == local_info.game_info.window.id() {
@@ -200,18 +202,16 @@ pub(crate) fn start_logic_thread(
                 }
             }
 
-
             //dont overwork other threads
-            let mut slept = false;
-            while commands.render_len(local_info.game_info.window_id) > local_info.game_info.max_queue_size {
+            while commands.render_len(local_info.game_info.window_id)
+                > local_info.game_info.max_queue_size
+            {
                 sleep(Duration::from_millis(last_sleep));
                 last_sleep = last_sleep * 2;
-                slept = true;
             }
-            if !slept {
-                last_sleep = last_sleep / 2;
-            }
+            last_sleep = last_sleep / 2;
         }
+        println!("logic thread exit")
     });
 
     (shared_logic_info, shared_render_info)

@@ -9,6 +9,7 @@ use niels1020_graphics_engine::{
         render_layers::{layer_as_type, layer_as_type_mut},
     },
     start_engine,
+    utils::debug_window::get_new_debug_window,
 };
 use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
@@ -102,6 +103,10 @@ impl InputHandler for Input {
             (0.0, 250.0, 0.5),
         ));
         commands.add_render_layer(game_info.window_id, layer1);
+
+        let dbg = get_new_debug_window(game_info.window_id);
+
+        commands.new_window(dbg.0, dbg.1);
     }
 
     fn exit(&mut self, _commands: GlobalComands, _game_info: &mut GameInfo) {
@@ -115,15 +120,16 @@ impl InputHandler for Input {
         request: Request,
     ) {
         match request {
-            Request::RenderLayerClone(render_layer) => {
+            Request::RenderLayerClone(render_layer, _index, _id) => {
                 if let Some(layer) = layer_as_type::<RenderLayer2D>(render_layer) {
                     let object = layer.get_child("TEXTURE TEST".to_string());
                     println!("render_layer status: {:#?}", object);
                 }
             }
-            Request::LayerAddedAtIndex(name, index) => {
+            Request::LayerAddedAtIndex(name, index, _id) => {
                 println!("layer {} added at {}", name, index)
             }
+            _ => {}
         }
     }
 
@@ -184,7 +190,7 @@ impl RenderObject2D for VerticesTest {
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }
-    
+
     fn get_debug_info(&self) -> String {
         format!("vertices test")
     }
@@ -248,7 +254,7 @@ impl RenderObject2D for TextureTest {
     fn clone_box(&self) -> Box<dyn RenderObject2D> {
         Box::new(self.clone())
     }
-    
+
     fn get_debug_info(&self) -> String {
         format!("vertices test")
     }

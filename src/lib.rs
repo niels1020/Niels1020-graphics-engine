@@ -3,6 +3,7 @@ use winit::{event_loop::EventLoop, window::WindowAttributes};
 pub mod common;
 pub mod logic;
 pub mod render;
+pub mod utils;
 
 pub use wgpu::include_wgsl;
 pub use winit;
