@@ -30,11 +30,13 @@ pub(crate) enum RenderCommand {
     ModifyRenderLayer(usize, Box<dyn FnOnce(&mut Box<dyn RenderLayer>) + Send>),
     Exit,
     Resized((u32, u32)),
+    GetLayerCount(WindowId),
 }
 
 pub enum Request {
-    RenderLayerClone(Box<dyn RenderLayer>),
-    LayerAddedAtIndex(String, usize)
+    RenderLayerClone(Box<dyn RenderLayer>, usize, WindowId),
+    LayerAddedAtIndex(String, usize, WindowId),
+    LayerCount(usize, WindowId),
 }
 
 struct Commands {
@@ -195,6 +197,17 @@ impl Commands {
             }
         }
     }
+
+    fn get_layer_count(&mut self, target: WindowId, to_deliver: WindowId) {
+        match self.render_queues.get_mut(&target) {
+            Some(queue) => queue.push_back(RenderCommand::GetLayerCount(to_deliver)),
+            None => {
+                let mut vecd = VecDeque::new();
+                vecd.push_back(RenderCommand::GetLayerCount(to_deliver));
+                self.render_queues.insert(target, vecd);
+            }
+        }
+    }
 }
 
 macro_rules! forward_methods {
@@ -242,6 +255,7 @@ forward_methods! {
     remove_render_layer(target: WindowId, index: usize) -> ();
     get_render_layer_clone(to_clone: WindowId, index_to_clone: usize, to_deliver: WindowId)-> ();
     resize(window_id: WindowId, new_size: (u32, u32)) -> ();
+    get_layer_count(target: WindowId, to_deliver: WindowId) -> ();
 }
 
 forward_methods_crate! {
@@ -272,9 +286,14 @@ pub(crate) fn run_logic_command(
     match command {
         LogicCommand::CloseWindow(window_id) => {
             game.windows.retain(|window| {
-                let mut shared_logic = window.shared_logic_info.as_ref().unwrap().lock().unwrap();
-                shared_logic.should_despawn = true;
-                window.window_id != window_id
+                if window.window_id == window_id {
+                    let mut shared_logic =
+                        window.shared_logic_info.as_ref().unwrap().lock().unwrap();
+                    shared_logic.should_despawn = true;
+                    false
+                } else {
+                    true
+                }
             });
             if game.windows.is_empty() {
                 println!("No windows open: Exiting");
