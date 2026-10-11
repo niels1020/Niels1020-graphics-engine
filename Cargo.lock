@@ -1759,6 +1759,7 @@ dependencies = [
  "egui-wgpu",
  "egui-winit",
  "image",
+ "log",
  "nalgebra",
  "pollster",
  "rect_packer",

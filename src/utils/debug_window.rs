@@ -12,7 +12,8 @@ pub fn get_new_debug_window(to_debug: WindowId) -> (Box<dyn InputHandler>, Windo
         Box::new(DebugWindow {
             to_debug,
             debug_info: HashMap::new(),
-            requested: false,
+            requested: 0,
+            to_reaquest: 0,
         }),
         WindowAttributes::default(),
     );
@@ -21,7 +22,8 @@ pub fn get_new_debug_window(to_debug: WindowId) -> (Box<dyn InputHandler>, Windo
 struct DebugWindow {
     to_debug: WindowId,
     debug_info: HashMap<usize, (String, Vec<String>)>,
-    requested: bool,
+    to_reaquest: usize,
+    requested: usize,
 }
 
 impl InputHandler for DebugWindow {
@@ -46,8 +48,8 @@ impl InputHandler for DebugWindow {
         game_info: &mut crate::logic::game_window::GameInfo,
         _delta: f64,
     ) {
-        if !self.requested {
-            self.requested = true;
+        if self.requested == self.to_reaquest {
+            self.requested = 0;
             commands.get_layer_count(self.to_debug, game_info.window_id);
         }
     }
@@ -74,6 +76,7 @@ impl InputHandler for DebugWindow {
     ) {
         match request {
             Request::LayerCount(len, target) => {
+                self.to_reaquest = len;
                 if target == self.to_debug {
                     for i in 0..len {
                         commands.get_render_layer_clone(self.to_debug, i, game_info.window_id);
@@ -96,10 +99,6 @@ impl InputHandler for DebugWindow {
         ctx: egui::Context,
     ) {
         Window::new("layer debug").show(&ctx, |ui| {
-            ui.label("Hello, world!");
-            ui.label("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-            ui.label("The quick brown fox jumps over the lazy dog.");
-
             for (_, (info, children)) in self.debug_info.iter() {
                 ui.collapsing(info.as_str(), |ui| {
                     for info in children.iter() {
@@ -107,14 +106,6 @@ impl InputHandler for DebugWindow {
                     }
                 });
             }
-            /*for (_, (info, children_info)) in self.debug_info.iter_mut() {
-                CollapsingHeader::new(info.as_str()).show(ui, |ui| {
-                    for info in children_info {
-                        ui.label("wtf");
-                        ui.label(info.as_str());
-                    }
-                });
-            }*/
         });
     }
 }
