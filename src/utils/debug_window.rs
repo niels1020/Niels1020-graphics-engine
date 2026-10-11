@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use egui::{CollapsingHeader, FontDefinitions, Window};
+use egui::Window;
 use winit::{
     event::WindowEvent::CloseRequested,
     window::{WindowAttributes, WindowId},

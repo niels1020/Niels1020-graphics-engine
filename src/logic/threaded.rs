@@ -111,9 +111,10 @@ pub(crate) fn start_logic_thread(
                 //window event handling
                 for (event, id) in window_events {
                     match event.clone() {
-                        //FIXME: also resizing other windows
                         WindowEvent::Resized(new_size) => {
-                            commands.resize(local_info.game_info.window_id, new_size.into())
+                            if id == local_info.game_info.window_id {
+                                commands.resize(local_info.game_info.window_id, new_size.into());
+                            }
                         }
                         _ => {}
                     }

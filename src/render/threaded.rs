@@ -70,7 +70,7 @@ pub(crate) fn start_render_thread(
                             }
                             crate::logic::commands::RenderCommand::Exit => running = false,
                             crate::logic::commands::RenderCommand::Resized(new_size) => {
-                                renderer.resize(new_size.0, new_size.1)
+                                renderer.resize(new_size.0, new_size.1);
                             }
                             crate::logic::commands::RenderCommand::GetLayerCount(window_id) => {
                                 commands.push_request(
