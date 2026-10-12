@@ -19,7 +19,7 @@ pub fn start_engine(
     main_input_handler: Box<dyn InputHandler + Send>,
     window_attributes: WindowAttributes,
 ) {
-    egui_logger::builder().init().unwrap();
+    pretty_env_logger::init();
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = Engine::new(main_input_handler, window_attributes);

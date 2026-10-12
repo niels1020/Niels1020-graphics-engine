@@ -107,9 +107,5 @@ impl InputHandler for DebugWindow {
                 });
             }
         });
-
-        Window::new("console").default_open(false).show(&ctx, |ui| {
-            egui_logger::logger_ui().show(ui);
-        });
     }
 }
