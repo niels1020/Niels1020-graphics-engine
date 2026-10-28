@@ -46,15 +46,15 @@ struct Commands {
     requests: HashMap<WindowId, VecDeque<Request>>,
 }
 
-pub struct GlobalComands(Arc<Mutex<Commands>>);
+pub struct GlobalCommands(Arc<Mutex<Commands>>);
 
-impl GlobalComands {
+impl GlobalCommands {
     pub fn new() -> Self {
         Self(Arc::new(Mutex::new(Commands::new())))
     }
 }
 
-impl Clone for GlobalComands {
+impl Clone for GlobalCommands {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
@@ -219,7 +219,7 @@ macro_rules! forward_methods {
             ) -> $ret:ty;
         )*
     ) => {
-        impl GlobalComands {
+        impl GlobalCommands {
             $(
                 pub fn $method(&self, $($arg: $arg_ty),*) -> $ret {
                     self.0.lock().unwrap().$method($($arg),*)
@@ -237,7 +237,7 @@ macro_rules! forward_methods_crate {
             ) -> $ret:ty;
         )*
     ) => {
-        impl GlobalComands {
+        impl GlobalCommands {
             $(
                 pub(crate) fn $method(&self, $($arg: $arg_ty),*) -> $ret {
                     self.0.lock().unwrap().$method($($arg),*)
@@ -267,7 +267,7 @@ forward_methods_crate! {
 }
 
 //i don't have macro for this
-impl GlobalComands {
+impl GlobalCommands {
     pub fn modify_render_layer<A>(&self, target: WindowId, index: usize, op: A)
     where
         A: FnOnce(&mut Box<dyn RenderLayer>) + Send + 'static,

@@ -3,12 +3,13 @@ use winit::{
 };
 
 use crate::logic::{
-    commands::{GlobalComands, run_logic_command}, game_window::{GameWindow, InputHandler},
+    commands::{GlobalCommands, run_logic_command},
+    game_window::{GameWindow, InputHandler},
 };
 
 pub struct Engine {
     pub(crate) windows: Vec<GameWindow>,
-    pub(crate) commands: GlobalComands,
+    pub(crate) commands: GlobalCommands,
 }
 
 impl Engine {
@@ -18,11 +19,10 @@ impl Engine {
     ) -> Self {
         Self {
             windows: vec![GameWindow::new(main_input_handler, window_attributes)],
-            commands: GlobalComands::new(),
+            commands: GlobalCommands::new(),
         }
     }
 
-    
     pub fn run_commands(&mut self, event_loop: &ActiveEventLoop) {
         let mut commands = self.commands.get_logic_commands();
         while !commands.is_empty() {

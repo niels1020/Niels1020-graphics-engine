@@ -14,7 +14,7 @@ use winit::{
 };
 
 use crate::logic::{
-    commands::GlobalComands,
+    commands::GlobalCommands,
     game_window::{GameInfo, InputHandler},
 };
 
@@ -40,7 +40,7 @@ pub(crate) struct RenderInfo {
 pub(crate) type SharedRenderInfo = Arc<Mutex<RenderInfo>>;
 
 pub(crate) fn start_logic_thread(
-    commands: GlobalComands,
+    commands: GlobalCommands,
     window: Arc<Window>,
     input_handler: Box<dyn InputHandler + Send>,
     gui_ctx: Context,

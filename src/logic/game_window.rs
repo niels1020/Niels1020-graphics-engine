@@ -1,8 +1,6 @@
-use std::{
-    sync::Arc,
-};
+use std::sync::Arc;
 
-use egui::Context;
+use egui::{Context, FontData, FontFamily, FontInsert, FontPriority, InsertFontFamily};
 use log::info;
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
@@ -12,7 +10,7 @@ use winit::{
 
 use crate::{
     logic::{
-        commands::{GlobalComands, Request},
+        commands::{GlobalCommands, Request},
         threaded::{SharedLogicInfo, start_logic_thread},
     },
     render::{render_layers::RenderLayer, renderer::Renderer, threaded::start_render_thread},
@@ -49,7 +47,7 @@ impl GameWindow {
         }
     }
 
-    pub fn start(&mut self, commands: GlobalComands, event_loop: &ActiveEventLoop) {
+    pub fn start(&mut self, commands: GlobalCommands, event_loop: &ActiveEventLoop) {
         let init_only = self.init_only.take().unwrap();
 
         let window = Arc::new(
@@ -59,6 +57,15 @@ impl GameWindow {
         );
 
         let egui_ctx = Context::default();
+
+        egui_ctx.add_font(FontInsert::new(
+            "OxProta",
+            FontData::from_static(include_bytes!("../../assets/0xProtoNerdFont-Regular.ttf")),
+            vec![InsertFontFamily {
+                family: FontFamily::Proportional,
+                priority: FontPriority::Highest,
+            }],
+        ));
 
         let (shared_logic_info, shared_render_info) = start_logic_thread(
             commands.clone(),
@@ -106,43 +113,43 @@ impl SceneTree {
 pub trait InputHandler: Send {
     fn window_event(
         &mut self,
-        commands: GlobalComands,
+        commands: GlobalCommands,
         game_info: &mut GameInfo,
         event: WindowEvent,
         consumed: bool,
     );
     fn other_window_event(
         &mut self,
-        _commands: GlobalComands,
+        _commands: GlobalCommands,
         _game_info: &mut GameInfo,
         _window_id: WindowId,
         _event: WindowEvent,
         _consumed: bool,
     ) {
     }
-    fn update(&mut self, commands: GlobalComands, game_info: &mut GameInfo, delta: f64);
+    fn update(&mut self, commands: GlobalCommands, game_info: &mut GameInfo, delta: f64);
 
-    fn start(&mut self, commands: GlobalComands, game_info: &mut GameInfo);
+    fn start(&mut self, commands: GlobalCommands, game_info: &mut GameInfo);
 
-    fn exit(&mut self, commands: GlobalComands, game_info: &mut GameInfo);
+    fn exit(&mut self, commands: GlobalCommands, game_info: &mut GameInfo);
 
     fn receive_request(
         &mut self,
-        commands: GlobalComands,
+        commands: GlobalCommands,
         game_info: &mut GameInfo,
         request: Request,
     );
 
     fn device_event(
         &mut self,
-        _commands: GlobalComands,
+        _commands: GlobalCommands,
         _game_info: &mut GameInfo,
         _event: DeviceEvent,
         _device_id: DeviceId,
     ) {
     }
 
-    fn gui(&mut self, commands: GlobalComands, game_info: &mut GameInfo, ctx: egui::Context);
+    fn gui(&mut self, commands: GlobalCommands, game_info: &mut GameInfo, ctx: egui::Context);
 }
 
 pub struct GameInfo {

@@ -4,7 +4,7 @@ use log::info;
 
 use crate::{
     logic::{
-        commands::{GlobalComands, Request},
+        commands::{GlobalCommands, Request},
         game_window::SceneTree,
         threaded::SharedRenderInfo,
     },
@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub(crate) fn start_render_thread(
-    commands: GlobalComands,
+    commands: GlobalCommands,
     renderer: Renderer,
     shared: SharedRenderInfo,
 ) {

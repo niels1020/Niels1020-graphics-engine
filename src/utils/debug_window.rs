@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use egui::Window;
+use std::collections::HashMap;
 use winit::{
     event::WindowEvent::CloseRequested,
     window::{WindowAttributes, WindowId},
@@ -29,7 +29,7 @@ struct DebugWindow {
 impl InputHandler for DebugWindow {
     fn window_event(
         &mut self,
-        commands: crate::logic::commands::GlobalComands,
+        commands: crate::logic::commands::GlobalCommands,
         game_info: &mut crate::logic::game_window::GameInfo,
         event: winit::event::WindowEvent,
         _consumed: bool,
@@ -44,7 +44,7 @@ impl InputHandler for DebugWindow {
 
     fn update(
         &mut self,
-        commands: crate::logic::commands::GlobalComands,
+        commands: crate::logic::commands::GlobalCommands,
         game_info: &mut crate::logic::game_window::GameInfo,
         _delta: f64,
     ) {
@@ -56,21 +56,21 @@ impl InputHandler for DebugWindow {
 
     fn start(
         &mut self,
-        _commands: crate::logic::commands::GlobalComands,
+        _commands: crate::logic::commands::GlobalCommands,
         _game_info: &mut crate::logic::game_window::GameInfo,
     ) {
     }
 
     fn exit(
         &mut self,
-        _commands: crate::logic::commands::GlobalComands,
+        _commands: crate::logic::commands::GlobalCommands,
         _game_info: &mut crate::logic::game_window::GameInfo,
     ) {
     }
 
     fn receive_request(
         &mut self,
-        commands: crate::logic::commands::GlobalComands,
+        commands: crate::logic::commands::GlobalCommands,
         game_info: &mut crate::logic::game_window::GameInfo,
         request: crate::logic::commands::Request,
     ) {
@@ -94,18 +94,20 @@ impl InputHandler for DebugWindow {
 
     fn gui(
         &mut self,
-        _commands: crate::logic::commands::GlobalComands,
+        _commands: crate::logic::commands::GlobalCommands,
         _game_info: &mut crate::logic::game_window::GameInfo,
         ctx: egui::Context,
     ) {
-        Window::new("layer debug").default_open(false).show(&ctx, |ui| {
-            for (_, (info, children)) in self.debug_info.iter() {
-                ui.collapsing(info.as_str(), |ui| {
-                    for info in children.iter() {
-                        ui.label(info.as_str());
-                    }
-                });
-            }
-        });
+        Window::new("layer debug")
+            .default_open(false)
+            .show(&ctx, |ui| {
+                for (_, (info, children)) in self.debug_info.iter() {
+                    ui.collapsing(info.as_str(), |ui| {
+                        for info in children.iter() {
+                            ui.label(info.as_str());
+                        }
+                    });
+                }
+            });
     }
 }
