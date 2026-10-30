@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use egui::{Context, FontData, FontFamily, FontInsert, FontPriority, InsertFontFamily};
-use log::info;
+use log::{info, warn};
 use winit::{
     event::{DeviceEvent, DeviceId, WindowEvent},
     event_loop::ActiveEventLoop,
@@ -26,7 +26,8 @@ pub struct GameWindow {
     input_handler: Option<Box<dyn InputHandler + Send>>,
     init_only: Option<InitOnly>,
     pub(crate) shared_logic_info: Option<SharedLogicInfo>,
-    pub(crate) window_id: WindowId,
+    pub(crate) window_id: Option<WindowId>,
+    is_headless: bool,
 }
 
 #[derive(Clone)]
@@ -43,18 +44,23 @@ impl GameWindow {
             input_handler: Some(input_handler),
             init_only: Some(InitOnly { window_attributes }),
             shared_logic_info: None,
-            window_id: WindowId::dummy(),
+            window_id: None,
+            is_headless: false,
         }
     }
 
-    pub fn start(&mut self, commands: GlobalCommands, event_loop: &ActiveEventLoop) {
+    fn init(&mut self, commands: GlobalCommands, event_loop: &ActiveEventLoop) {
         let init_only = self.init_only.take().unwrap();
 
-        let window = Arc::new(
-            event_loop
-                .create_window(init_only.window_attributes.clone())
-                .unwrap(),
-        );
+        let tmp = event_loop.create_window(init_only.window_attributes.clone());
+        if tmp.is_err() {
+            self.init_headless(commands);
+            warn!("failed to open window interpreting as doctest and running headless");
+            warn!("actuall error: {}", tmp.err().unwrap());
+            return;
+        }
+
+        let window = Arc::new(tmp.unwrap());
 
         let egui_ctx = Context::default();
 
@@ -74,7 +80,7 @@ impl GameWindow {
             egui_ctx.clone(),
         );
 
-        self.window_id = window.id();
+        self.window_id = Some(window.id());
 
         start_render_thread(
             commands,
@@ -85,6 +91,20 @@ impl GameWindow {
         self.shared_logic_info = Some(shared_logic_info);
 
         info!("window started")
+    }
+
+    fn init_headless(&mut self, commands: GlobalCommands) {
+        self.is_headless = true;
+        //exit immeaditly as there is no logic after this
+        commands.exit();
+    }
+
+    pub fn start(&mut self, commands: GlobalCommands, event_loop: &ActiveEventLoop) {
+        if cfg!(test) {
+            self.init_headless(commands);
+        } else {
+            self.init(commands, event_loop);
+        }
     }
 
     pub fn window_event(&mut self, window_id: WindowId, event: WindowEvent) {

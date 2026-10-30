@@ -1,3 +1,4 @@
 better error handling
 better tests then ai generated tests
 add documentation
+make it so when in test build and headles verticesand such still get calculated <= not possible as we need windowId to adress specific windows but we need it for full threaded tests

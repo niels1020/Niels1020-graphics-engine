@@ -104,11 +104,14 @@ pub fn object3d_as_type_mut<T: RenderObject3D + 'static>(
 
 impl RenderLayer for RenderLayer3D {
     fn render(&mut self, global: &mut RendererGlobal, render_pass: &mut RenderPass) {
+        if global.is_headless {
+            return;
+        }
         self.camera_uniform.update_view_proj(&self.camera);
 
         if self.render_pipeline.is_none() {
-            let cam_bind_group_layout = camera_bind_group_layout(&global.device);
-            self.camera_buffer = Some(global.device.create_buffer_init(
+            let cam_bind_group_layout = camera_bind_group_layout(global.device.as_ref().unwrap());
+            self.camera_buffer = Some(global.device.as_ref().unwrap().create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: Some("Camera Buffer"),
                     contents: bytemuck::cast_slice(&[self.camera_uniform]),
@@ -116,29 +119,35 @@ impl RenderLayer for RenderLayer3D {
                 },
             ));
 
-            self.transform_layout = Some(transform_bind_group_layout(&global.device));
+            self.transform_layout =
+                Some(transform_bind_group_layout(global.device.as_ref().unwrap()));
 
             self.render_pipeline = Some(create_pipeline(
-                &global.device,
+                global.device.as_ref().unwrap(),
                 self.shader.clone(),
-                &global.config,
+                global.config.as_ref().unwrap(),
                 &self.name,
                 &cam_bind_group_layout,
-                &self.atlas_texture.create_layout(&global.device),
+                &self
+                    .atlas_texture
+                    .create_layout(global.device.as_ref().unwrap()),
                 self.transform_layout.as_ref().unwrap(),
             ));
 
             self.camera_bind = Some(create_camera_bind_group(
-                &global.device,
+                global.device.as_ref().unwrap(),
                 self.camera_buffer.as_ref().unwrap(),
                 &cam_bind_group_layout,
             ));
-            self.atlas_texture.build(&global.queue, &global.device);
-            self.atlas_bind = Some(self.atlas_texture.bind(&global.device))
+            self.atlas_texture.build(
+                global.queue.as_ref().unwrap(),
+                global.device.as_ref().unwrap(),
+            );
+            self.atlas_bind = Some(self.atlas_texture.bind(global.device.as_ref().unwrap()))
         }
 
         self.camera_uniform.update_view_proj(&self.camera);
-        global.queue.write_buffer(
+        global.queue.as_ref().unwrap().write_buffer(
             self.camera_buffer.as_ref().unwrap(),
             0,
             cast_slice(&[self.camera_uniform]),
@@ -162,55 +171,64 @@ impl RenderLayer for RenderLayer3D {
                     continue;
                 }
 
-                container.vertex_buffer =
-                    Some(global.device.create_buffer_init(&BufferInitDescriptor {
+                container.vertex_buffer = Some(global.device.as_ref().unwrap().create_buffer_init(
+                    &BufferInitDescriptor {
                         label: Some("Vertex beffer for an object"),
                         contents: cast_slice(&vertices),
                         usage: BufferUsages::VERTEX,
-                    }));
-            }
-
-            if container.transform_buffer.is_none() {
-                container.transform_buffer = Some(global.device.create_buffer_init(
-                    &wgpu::util::BufferInitDescriptor {
-                        label: Some("A Transform Buffer"),
-                        contents: bytemuck::cast_slice(&[container.object_mut().get_transform()]),
-                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, //COPY_DST means that you can upload to it later
                     },
                 ));
             }
 
+            if container.transform_buffer.is_none() {
+                container.transform_buffer =
+                    Some(global.device.as_ref().unwrap().create_buffer_init(
+                        &wgpu::util::BufferInitDescriptor {
+                            label: Some("A Transform Buffer"),
+                            contents: bytemuck::cast_slice(&[
+                                container.object_mut().get_transform(),
+                            ]),
+                            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, //COPY_DST means that you can upload to it later
+                        },
+                    ));
+            }
+
             if container.transform_bind.is_none() {
                 container.transform_bind = Some(
-                    global.device.create_bind_group(&BindGroupDescriptor {
-                        label: Some("transform bind"),
-                        layout: self.transform_layout.as_ref().unwrap(),
-                        entries: &[wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: container
-                                .transform_buffer
-                                .as_ref()
-                                .unwrap()
-                                .as_entire_binding(),
-                        }],
-                    }),
+                    global
+                        .device
+                        .as_ref()
+                        .unwrap()
+                        .create_bind_group(&BindGroupDescriptor {
+                            label: Some("transform bind"),
+                            layout: self.transform_layout.as_ref().unwrap(),
+                            entries: &[wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: container
+                                    .transform_buffer
+                                    .as_ref()
+                                    .unwrap()
+                                    .as_entire_binding(),
+                            }],
+                        }),
                 )
             }
 
             if container.object().has_transform_changed() {
                 let transform = container.object_mut().get_transform();
-                global.queue.write_buffer(
+                global.queue.as_ref().unwrap().write_buffer(
                     container.transform_buffer.as_ref().unwrap(),
                     0,
                     bytemuck::cast_slice(&[transform]),
                 );
             }
 
-            self.atlas_rebuilt = self
-                .atlas_texture
-                .build_if_needed(&global.queue, &global.device);
+            self.atlas_rebuilt = self.atlas_texture.build_if_needed(
+                global.queue.as_ref().unwrap(),
+                global.device.as_ref().unwrap(),
+            );
             if self.atlas_rebuilt {
-                self.atlas_bind = Some(self.atlas_texture.bind(&global.device));
+                self.atlas_bind = Some(self.atlas_texture.bind(global.device.as_ref().unwrap()));
             }
 
             render_pass.set_bind_group(1, self.atlas_bind.as_ref().unwrap(), &[]);

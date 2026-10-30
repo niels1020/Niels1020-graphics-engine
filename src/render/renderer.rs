@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use cosmic_text::{FontSystem, SwashCache};
 use egui::Context;
-use log::info;
+use log::{info, warn};
 use wgpu::{
     CurrentSurfaceTexture, ExperimentalFeatures, Features, Instance, InstanceDescriptor, Limits,
     RenderPass, Surface, TextureUsages, TextureViewDescriptor,
@@ -19,13 +19,35 @@ use crate::{
 pub struct Renderer {
     pub(crate) global: RendererGlobal,
     is_surface_configured: bool,
-    pub(crate) window_res: [u32; 2],
-    surface: Surface<'static>,
-    pub(crate) window_id: WindowId,
+    pub(crate) window_res: Option<[u32; 2]>,
+    surface: Option<Surface<'static>>,
+    pub(crate) window_id: Option<WindowId>,
     pub ui: UI,
+    pub is_headless: bool,
 }
 
 impl Renderer {
+    pub async fn new_headless(egui_ctx: Context) -> Self {
+        let globals = RendererGlobal {
+            font_system: FontSystem::new(),
+            text_swash_cache: SwashCache::new(),
+            device: None,
+            config: None,
+            queue: None,
+            depth_texture: None,
+            is_headless: true,
+        };
+        Self {
+            ui: UI::new(None, &globals, egui_ctx),
+            global: globals,
+            is_surface_configured: false,
+            is_headless: true,
+            window_res: None,
+            surface: None,
+            window_id: None,
+        }
+    }
+
     pub async fn new(window: Arc<Window>, egui_ctx: Context) -> Self {
         let size = window.inner_size();
 
@@ -94,21 +116,27 @@ impl Renderer {
         info!("done renderer init");
 
         let global = RendererGlobal {
-            depth_texture: Texture::create_depth_texture(&device, &config, "depth texture"),
-            device,
-            config,
-            queue,
+            depth_texture: Some(Texture::create_depth_texture(
+                &device,
+                &config,
+                "depth texture",
+            )),
+            device: Some(device),
+            config: Some(config),
+            queue: Some(queue),
             font_system: FontSystem::new(),
             text_swash_cache: SwashCache::new(),
+            is_headless: false,
         };
 
         Self {
-            window_id: window.id(),
-            ui: UI::new(window, &global, egui_ctx),
+            window_id: Some(window.id()),
+            ui: UI::new(Some(window), &global, egui_ctx),
             global,
             is_surface_configured: true,
-            window_res: [size.width, size.height],
-            surface,
+            window_res: Some([size.width, size.height]),
+            surface: Some(surface),
+            is_headless: false,
         }
     }
 
@@ -117,17 +145,22 @@ impl Renderer {
             info!("surface not configured");
             return;
         }
-        if let CurrentSurfaceTexture::Success(output) = self.surface.get_current_texture() {
+        if self.is_headless {
+            warn!("running in headless mode: no graphics");
+            return;
+        }
+        if let CurrentSurfaceTexture::Success(output) =
+            self.surface.as_ref().unwrap().get_current_texture()
+        {
             let view = output
                 .texture
                 .create_view(&TextureViewDescriptor::default());
 
-            let mut encoder =
-                self.global
-                    .device
-                    .create_command_encoder(&CommandEncoderDescriptor {
-                        label: Some("wgpu_game_engine render encoder"),
-                    });
+            let mut encoder = self.global.device.as_ref().unwrap().create_command_encoder(
+                &CommandEncoderDescriptor {
+                    label: Some("wgpu_game_engine render encoder"),
+                },
+            );
 
             self.ui.pre_render(&self.global, &mut encoder);
             //render pass
@@ -145,7 +178,7 @@ impl Renderer {
                             depth_slice: None,
                         })],
                         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &self.global.depth_texture.view,
+                            view: &self.global.depth_texture.as_ref().unwrap().view,
                             depth_ops: Some(wgpu::Operations {
                                 load: wgpu::LoadOp::Clear(DEPTH_CLEAR_VALUE),
                                 store: wgpu::StoreOp::Store,
@@ -163,24 +196,34 @@ impl Renderer {
             }
 
             // submit will accept anything that implements IntoIter
-            self.global.queue.submit(std::iter::once(encoder.finish()));
-            self.global.queue.present(output);
+            self.global
+                .queue
+                .as_ref()
+                .unwrap()
+                .submit(std::iter::once(encoder.finish()));
+            self.global.queue.as_ref().unwrap().present(output);
         }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
+        if self.is_headless {
+            warn!("running in headless mode: no graphics");
+            return;
+        }
         if width > 0 && height > 0 {
-            self.global.config.width = width;
-            self.global.config.height = height;
-            self.surface
-                .configure(&self.global.device, &self.global.config);
-            self.is_surface_configured = true;
-            self.global.depth_texture = Texture::create_depth_texture(
-                &self.global.device,
-                &self.global.config,
-                "depth_texture",
+            self.global.config.as_mut().unwrap().width = width;
+            self.global.config.as_mut().unwrap().height = height;
+            self.surface.as_ref().unwrap().configure(
+                &self.global.device.as_ref().unwrap(),
+                &self.global.config.as_ref().unwrap(),
             );
-            self.window_res = [width, height];
+            self.is_surface_configured = true;
+            self.global.depth_texture = Some(Texture::create_depth_texture(
+                &self.global.device.as_ref().unwrap(),
+                &self.global.config.as_ref().unwrap(),
+                "depth_texture",
+            ));
+            self.window_res = Some([width, height]);
         }
     }
 

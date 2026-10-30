@@ -287,7 +287,7 @@ pub(crate) fn run_logic_command(
     match command {
         LogicCommand::CloseWindow(window_id) => {
             game.windows.retain(|window| {
-                if window.window_id == window_id {
+                if window.window_id.unwrap() == window_id {
                     let mut shared_logic =
                         window.shared_logic_info.as_ref().unwrap().lock().unwrap();
                     shared_logic.should_despawn = true;

@@ -23,7 +23,7 @@ pub(crate) fn start_render_thread(
         let mut running = true;
 
         while running {
-            match commands.get_render_commands(renderer.window_id) {
+            match commands.get_render_commands(renderer.window_id.unwrap()) {
                 Some(mut queue) => {
                     while !queue.is_empty() {
                         let cmd = queue.remove(0).unwrap();
@@ -40,7 +40,7 @@ pub(crate) fn start_render_thread(
                                     Request::LayerAddedAtIndex(
                                         name,
                                         scene_tree.root.len() - 1,
-                                        renderer.window_id,
+                                        renderer.window_id.unwrap(),
                                     ),
                                 );
                             }
@@ -57,7 +57,7 @@ pub(crate) fn start_render_thread(
                                         Request::RenderLayerClone(
                                             scene_tree.root.get(index).unwrap().clone(),
                                             index,
-                                            renderer.window_id,
+                                            renderer.window_id.unwrap(),
                                         ),
                                     )
                                 }
@@ -77,7 +77,10 @@ pub(crate) fn start_render_thread(
                             crate::logic::commands::RenderCommand::GetLayerCount(window_id) => {
                                 commands.push_request(
                                     window_id,
-                                    Request::LayerCount(scene_tree.root.len(), renderer.window_id),
+                                    Request::LayerCount(
+                                        scene_tree.root.len(),
+                                        renderer.window_id.unwrap(),
+                                    ),
                                 )
                             }
                         }
