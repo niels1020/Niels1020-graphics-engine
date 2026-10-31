@@ -22,7 +22,7 @@ use crate::logic::{engine::Engine, game_window::InputHandler};
 /// - window_attributes: the atributes of the first window (derived from winit see winit docs for usages)
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use niels1020_graphics_engine::{start_engine, logic::{game_window::InputHandler, commands::GlobalCommands, game_window::GameInfo}, winit::{window, event::WindowEvent}};
 ///
 /// pub struct Input{};
