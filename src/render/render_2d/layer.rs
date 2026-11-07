@@ -103,7 +103,7 @@ impl RenderLayer for RenderLayer2D {
 
             if vertices.is_empty() {
                 self.vertex_buffer = None;
-            } else if self.vertex_buffer.is_none() {
+            } else if self.vertex_buffer.is_none() | (self.vertices_len != vertices.len()) {
                 self.vertex_buffer = Some(global.device.as_ref().unwrap().create_buffer_init(&BufferInitDescriptor { label: Some("test buffer"),
                         contents: bytemuck::cast_slice(&vertices),
                         usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, /*COPY_DST means that you can upload to it later*/}));
