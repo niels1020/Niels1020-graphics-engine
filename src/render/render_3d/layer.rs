@@ -1,6 +1,7 @@
 use std::{any::Any, fmt::Debug};
 
 use bytemuck::{NoUninit, cast_slice};
+use log::warn;
 use wgpu::{
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, Buffer, BufferBindingType, BufferUsages, Device, FragmentState,
@@ -267,7 +268,6 @@ impl RenderLayer for RenderLayer3D {
 }
 
 impl RenderLayer3D {
-    ///if shader == None it wil use a default shader
     pub fn new(
         shader: Option<ShaderModuleDescriptor<'static>>,
         name: String,
@@ -277,7 +277,13 @@ impl RenderLayer3D {
 
         let shader = match shader {
             Some(s) => s,
-            None => include_wgsl!("../../../assets/3d.wgsl"),
+            None => {
+                warn!(
+                    "no shader selected, using default shader: \n{}",
+                    include_str!("../../../assets/3d.wgsl")
+                );
+                include_wgsl!("../../../assets/3d.wgsl")
+            }
         };
 
         Box::new(Self {

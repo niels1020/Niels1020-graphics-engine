@@ -1,5 +1,6 @@
 use std::{any::Any, fmt::Debug};
 
+use log::warn;
 use wgpu::{
     BindGroup, BindGroupLayout, Buffer, Device, FragmentState, PipelineCompilationOptions,
     PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPass, RenderPipeline,
@@ -190,7 +191,13 @@ impl RenderLayer2D {
     ) -> Box<Self> {
         let shader = match shader {
             Some(s) => s,
-            None => include_wgsl!("../../../assets/2d.wgsl"),
+            None => {
+                warn!(
+                    "no shader selected, using default shader: \n{}",
+                    include_str!("../../../assets/2d.wgsl")
+                );
+                include_wgsl!("../../../assets/2d.wgsl")
+            }
         };
 
         Box::new(Self {
