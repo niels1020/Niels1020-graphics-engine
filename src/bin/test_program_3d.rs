@@ -1,4 +1,3 @@
-#![windows_subsystem = "windows"]
 use std::{thread, time::Duration};
 
 use egui::Window;

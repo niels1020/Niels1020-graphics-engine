@@ -1,4 +1,3 @@
-#![windows_subsystem = "windows"]
 use egui::Window;
 use log::info;
 use niels1020_graphics_engine::{
